@@ -233,6 +233,7 @@ void emberAfEndpointConfigure()
         for (ep = FIXED_ENDPOINT_COUNT; ep < MAX_ENDPOINT_COUNT; ep++)
         {
             emAfEndpoints[ep] = EmberAfDefinedEndpoint();
+            emAfEndpoints[ep].bitmask.Set(EmberAfEndpointOptions::isFlatComposition);
         }
     }
 #endif
