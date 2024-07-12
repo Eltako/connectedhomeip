@@ -114,6 +114,13 @@ menu "CHIP Core"
             help
                 Some device types don't require the read client. Enabling this option may save some flash/ram.
 
+        config ENABLE_PERSIST_SUBSCRIPTIONS
+            bool "Enable persist subscriptions"
+            default y
+            help
+                Enable persist subscriptions to make the device resume the subscriptions from the persist
+                subscriptions information after reboot.
+
         config BUILD_CHIP_TESTS
             bool "Build CHIP tests"
             default n
@@ -185,6 +192,13 @@ menu "CHIP Core"
             default y
             help
                 Enable this option to use LwIP default IPv6 route hook for Route Information Option(RIO) feature.
+
+        config ENABLE_ENDPOINT_QUEUE_FILTER
+            bool "Enable UDP Endpoint queue filter for mDNS Broadcast packets"
+            depends on USE_MINIMAL_MDNS
+            default y
+            help
+                Enable this option to start a UDP Endpoint queue filter for mDNS Broadcast packets
 
         config ENABLE_LWIP_THREAD_SAFETY
             bool "Enable LwIP Thread safety options"
@@ -625,12 +639,13 @@ menu "CHIP Device Layer"
                 When set, WoBLE advertisements will stop while a WoBLE connection is active.
 
         config USE_BLE_ONLY_FOR_COMMISSIONING
-	    bool "Use BLE only for commissioning"
-	    default y
-	    help
-            Disable this flag if BLE is used for any other purpose than commissioning.
-            When enabled, it deinitialized the BLE on successful commissioning, and on
-            bootup do not initialize the BLE if device is already provisioned with Wi-Fi/Thread credentials.
+            depends on BT_ENABLED
+            bool "Use BLE only for commissioning"
+            default y
+            help
+                Disable this flag if BLE is used for any other purpose than commissioning.
+                When enabled, it deinitialized the BLE on successful commissioning, and on
+                bootup do not initialize the BLE if device is already provisioned with Wi-Fi/Thread credentials.
 
     endmenu
 
@@ -1075,6 +1090,64 @@ menu "CHIP Device Layer"
             default n
             help
                 Enable Matter support Event List attribute.
+
+    endmenu
+
+    menu "Message Reliable Protocol Options"
+        config MRP_LOCAL_ACTIVE_RETRY_INTERVAL_FOR_THREAD
+            int "MRP local active retry interval for Thread network in milliseconds"
+            depends on OPENTHREAD_ENABLED
+            range 0 3600000
+            default 800
+            help
+                Base retry interval of the present Thread node when it is in the active state.
+
+        config MRP_LOCAL_ACTIVE_RETRY_INTERVAL_FOR_WIFI_ETHERNET
+            int "MRP local active retry interval for WIFI or ETHERNET network in milliseconds"
+            depends on !OPENTHREAD_ENABLED
+            range 0 3600000
+            default 300
+            help
+                Base retry interval of the present node (WIFI or ETHERNET) when it is in the active state.
+
+        config MRP_LOCAL_IDLE_RETRY_INTERVAL_FOR_THREAD
+            int "MRP local idle retry interval for Thread network in milliseconds"
+            depends on OPENTHREAD_ENABLED
+            range 0 3600000
+            default 800
+            help
+                Base retry interval of the present Thread node when it is in the idle state.
+
+        config MRP_LOCAL_IDLE_RETRY_INTERVAL_FOR_WIFI_ETHERNET
+            int "MRP local idle retry interval for WIFI or ETHERNET network in milliseconds"
+            depends on !OPENTHREAD_ENABLED
+            range 0 3600000
+            default 500
+            help
+                Base retry interval of the present node (WIFI or ETHERNET) when it is in the idle state.
+
+        config MRP_RETRY_INTERVAL_SENDER_BOOST_FOR_THREAD
+            int "MRP retransmission delta timeout for Thread network in milliseconds"
+            depends on OPENTHREAD_ENABLED
+            range 0 3600000
+            default 500
+            help
+                A constant value added to the calculated retransmission timeout.
+
+        config MRP_RETRY_INTERVAL_SENDER_BOOST_FOR_WIFI_ETHERNET
+            int "MRP retransmission delta timeout for WIFI or ETHERNET network in milliseconds"
+            depends on !OPENTHREAD_ENABLED
+            range 0 3600000
+            default 0
+            help
+                A constant value added to the calculated retransmission timeout.
+
+        config MRP_MAX_RETRANS
+            int "MRP retransmission maximum count"
+            range 1 10
+            default 4
+            help
+                The maximum number of retransmissions before giving up.
 
     endmenu
 
