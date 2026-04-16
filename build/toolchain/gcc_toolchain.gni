@@ -32,8 +32,8 @@ template("gcc_toolchain") {
       cc = "clang"
       cxx = "clang++"
     } else {
-      cc = "gcc"
-      cxx = "g++"
+      cc = "/usr/bin/gcc-14"
+      cxx = "/usr/bin/g++-14"
     }
 
     if (defined(invoker.ar)) {
