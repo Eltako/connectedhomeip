@@ -29,6 +29,7 @@
 #include <app/clusters/fan-control-server/fan-control-server.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <lib/support/CodeUtils.h>
 #include <lib/support/Scoped.h>
 #include <lib/support/logging/CHIPLogging.h>
@@ -49,7 +50,7 @@ constexpr size_t kFanControlDelegateTableSize =
 
 static_assert(kFanControlDelegateTableSize <= kEmberInvalidEndpointIndex, "FanControl Delegate table size error");
 
-Delegate * gDelegateTable[kFanControlDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 } // anonymous namespace
 
@@ -483,4 +484,12 @@ bool emberAfFanControlClusterStepCallback(app::CommandHandler * commandObj, cons
 
     commandObj->AddStatus(commandPath, status);
     return true;
+}
+
+void MatterFanControlPluginServerInitCallback()
+{
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kFanControlDelegateTableSize);
+    }
 }

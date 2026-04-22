@@ -29,6 +29,7 @@
 #include <app/ConcreteCommandPath.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 #include <protocols/interaction_model/StatusCode.h>
 #include <tracing/macros.h>
@@ -48,7 +49,7 @@ using chip::app::Clusters::LowPower::Delegate;
 
 namespace {
 
-Delegate * gDelegateTable[kLowPowerDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -115,4 +116,10 @@ bool emberAfLowPowerClusterSleepCallback(app::CommandHandler * command, const ap
     return true;
 }
 
-void MatterLowPowerPluginServerInitCallback() {}
+void MatterLowPowerPluginServerInitCallback()
+{
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLowPowerDelegateTableSize);
+    }
+}

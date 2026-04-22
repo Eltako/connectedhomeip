@@ -18,6 +18,7 @@
 #include <app/AttributeAccessInterfaceRegistry.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 
 #include "laundry-washer-controls-delegate.h"
 #include "laundry-washer-controls-server.h"
@@ -47,7 +48,7 @@ static constexpr size_t kLaundryWasherControlsDelegateTableSize =
 // Delegate Implementation
 //
 namespace {
-Delegate * gDelegateTable[kLaundryWasherControlsDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 }
 
 namespace {
@@ -186,6 +187,10 @@ CHIP_ERROR LaundryWasherControlsServer::ReadSupportedRinses(const ConcreteReadAt
 
 void MatterLaundryWasherControlsPluginServerInitCallback()
 {
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLaundryWasherControlsDelegateTableSize);
+    }
     LaundryWasherControlsServer & laundryWasherControlsServer = LaundryWasherControlsServer::Instance();
     AttributeAccessInterfaceRegistry::Instance().Register(&laundryWasherControlsServer);
 }

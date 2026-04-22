@@ -32,6 +32,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 
 using namespace chip;
@@ -50,7 +51,7 @@ using chip::app::Clusters::MediaInput::Delegate;
 
 namespace {
 
-Delegate * gDelegateTable[kMediaInputDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -294,5 +295,9 @@ exit:
 
 void MatterMediaInputPluginServerInitCallback()
 {
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kMediaInputDelegateTableSize);
+    }
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gMediaInputAttrAccess);
 }

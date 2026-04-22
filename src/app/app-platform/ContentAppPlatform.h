@@ -214,7 +214,7 @@ protected:
     ContentAppFactory * mContentAppFactory = nullptr;
     EndpointId mCurrentEndpointId;
     EndpointId mFirstDynamicEndpointId;
-    ContentApp * mContentApps[CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT];
+    ContentApp ** mContentApps = nullptr;
     // key is string -> vendorId:producTid
     std::map<std::string, std::set<NodeId>> mConnectedContentAppNodeIds;
 

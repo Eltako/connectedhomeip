@@ -28,6 +28,7 @@
 #include <app/cluster-building-blocks/QuieterReporting.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <app/util/util.h>
 
 #include <app/reporting/reporting.h>
@@ -104,7 +105,7 @@ struct EmberAfLevelControlState
     QuieterReportingAttribute<uint16_t> quietRemainingTime{ DataModel::MakeNullable<uint16_t>(0) };
 };
 
-static EmberAfLevelControlState stateTable[kLevelControlStateTableSize];
+static EmberAfLevelControlState * stateTable = nullptr;
 
 static EmberAfLevelControlState * getState(EndpointId endpoint);
 
@@ -1464,6 +1465,11 @@ void emberAfOnOffClusterLevelControlEffectCallback(EndpointId endpoint, bool new
 
 void emberAfLevelControlClusterServerInitCallback(EndpointId endpoint)
 {
+    if (stateTable == nullptr)
+    {
+        stateTable = chip::util::memory::allocate_forever<EmberAfLevelControlState>(kLevelControlStateTableSize);
+    }
+
     EmberAfLevelControlState * state = getState(endpoint);
 
     if (state == nullptr)

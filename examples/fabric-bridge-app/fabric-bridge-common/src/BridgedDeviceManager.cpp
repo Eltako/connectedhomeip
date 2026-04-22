@@ -28,6 +28,7 @@
 #include <app/util/af-types.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/endpoint-config-api.h>
+#include <app/util/memory.h>
 #include <app/util/util.h>
 #include <crypto/RandUtils.h>
 #include <lib/support/CHIPMem.h>
@@ -179,6 +180,11 @@ BridgedDeviceManager BridgedDeviceManager::sInstance;
 
 void BridgedDeviceManager::Init()
 {
+    if (mDevices == nullptr)
+    {
+        mDevices = chip::util::memory::allocate_forever<std::unique_ptr<BridgedDevice>>(
+            CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT + 1);
+    }
     mFirstDynamicEndpointId = static_cast<chip::EndpointId>(
         static_cast<int>(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 1))) + 1);
     mCurrentEndpointId = mFirstDynamicEndpointId;

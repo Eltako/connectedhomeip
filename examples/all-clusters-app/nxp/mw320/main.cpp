@@ -37,6 +37,7 @@
 #include <app/util/af-types.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/attribute-table.h>
+#include <app/util/memory.h>
 #include <lib/support/CHIPMem.h>
 #include <lib/support/logging/CHIPLogging.h>
 #include <platform/CHIPDeviceLayer.h>
@@ -158,6 +159,14 @@ BDXDownloader gDownloader;
 OTAImageProcessorImpl gImageProcessor;
 // chip::ota::DefaultOTARequestorUserConsent gUserConsentProvider;
 // static chip::ota::UserConsentState gUserConsentState = chip::ota::UserConsentState::kGranted;
+
+typedef struct _Identify_Timer
+{
+    EndpointId ep;
+    uint32_t identifyTimerCount;
+} Identify_Time_t;
+
+Identify_Time_t * id_time = nullptr;
 
 void InitOTARequestor(void)
 {
@@ -1255,6 +1264,10 @@ void ShellCLIMain(void * pvParameter)
     ChipLogDetail(Shell, "Initializing CHIP shell commands: %d", rc);
 
     chip::Platform::MemoryInit();
+    if (id_time == nullptr)
+    {
+        id_time = chip::util::memory::allocate_forever<Identify_Time_t>(MAX_ENDPOINT_COUNT);
+    }
     chip::DeviceLayer::PlatformMgr().InitChipStack();
     ConfigurationMgr().LogDeviceConfig();
     PrintOnboardingCodes(chip::RendezvousInformationFlag::kOnNetwork);
@@ -1549,14 +1562,7 @@ exit:
     return;
 }
 
-uint32_t identifyTimerCount;
 constexpr uint32_t kIdentifyTimerDelayMS = 250;
-typedef struct _Identify_Timer
-{
-    EndpointId ep;
-    uint32_t identifyTimerCount;
-} Identify_Time_t;
-Identify_Time_t id_time[MAX_ENDPOINT_COUNT];
 
 void IdentifyTimerHandler(System::Layer * systemLayer, void * appState)
 {

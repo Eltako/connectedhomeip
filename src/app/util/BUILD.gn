@@ -40,6 +40,8 @@ source_set("types") {
     "ember-strings.h",
     "endpoint-config-defines.h",
     "types_stub.h",
+    "memory.cpp",
+    "memory.h",
   ]
 
   deps = [

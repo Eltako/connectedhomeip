@@ -26,6 +26,7 @@
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
 #include <app/util/endpoint-config-api.h>
+#include <app/util/memory.h>
 #include <controller/CHIPCluster.h>
 #include <lib/core/CHIPCore.h>
 #include <lib/core/DataModelTypes.h>
@@ -261,6 +262,11 @@ EndpointId ContentAppPlatform::RemoveContentApp(ContentApp * app)
 void ContentAppPlatform::SetupAppPlatform()
 {
     ChipLogDetail(DeviceLayer, "AppPlatform::SetupAppPlatform()");
+
+    if (mContentApps == nullptr)
+    {
+        mContentApps = chip::util::memory::allocate_forever<ContentApp *>(CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT);
+    }
 
     // Clear out the device database
     uint8_t index = 0;

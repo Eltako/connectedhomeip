@@ -30,6 +30,7 @@
 #include <app/server/Server.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <cinttypes>
 
 #include <app/CommandHandler.h>
@@ -77,6 +78,14 @@ static DoorLockClusterFabricDelegate gFabricDelegate;
 DoorLockServer & DoorLockServer::Instance()
 {
     return instance;
+}
+
+void DoorLockServer::InitEndpointContext()
+{
+    if (mEndpointCtx == nullptr)
+    {
+        mEndpointCtx = chip::util::memory::allocate_forever<EmberAfDoorLockEndpointContext>(kDoorLockClusterServerMaxEndpointCount);
+    }
 }
 
 /**
@@ -4317,6 +4326,7 @@ void MatterDoorLockPluginServerInitCallback()
     ChipLogProgress(Zcl, "Door Lock server initialized");
     Server::GetInstance().GetFabricTable().AddFabricDelegate(&gFabricDelegate);
 
+    DoorLockServer::Instance().InitEndpointContext();
     AttributeAccessInterfaceRegistry::Instance().Register(&DoorLockServer::Instance());
 }
 

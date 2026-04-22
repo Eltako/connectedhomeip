@@ -26,6 +26,7 @@
 #include <app/AttributeAccessInterfaceRegistry.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <lib/support/CodeUtils.h>
 #include <lib/support/logging/CHIPLogging.h>
 
@@ -81,16 +82,16 @@ static constexpr uint16_t kNumStaticEndpoints    = 0;
 #endif
 static constexpr size_t kNumSupportedEndpoints = POWER_SERVER_NUM_SUPPORTED_ENDPOINTS;
 
-#if POWER_SERVER_NUM_SUPPORTED_ENDPOINTS > 0
-PowerSourceClusterInfo sPowerSourceClusterInfo[kNumSupportedEndpoints] = {};
-#else
 PowerSourceClusterInfo * sPowerSourceClusterInfo = nullptr;
-#endif
 
 } // anonymous namespace
 
 void MatterPowerSourcePluginServerInitCallback()
 {
+    if (sPowerSourceClusterInfo == nullptr)
+    {
+        sPowerSourceClusterInfo = chip::util::memory::allocate_forever<PowerSourceClusterInfo>(kNumSupportedEndpoints);
+    }
     AttributeAccessInterfaceRegistry::Instance().Register(&gAttrAccess);
 }
 
@@ -179,12 +180,10 @@ const Span<EndpointId> * PowerSourceServer::GetEndpointList(EndpointId powerSour
 
 void PowerSourceServer::Shutdown()
 {
-#if POWER_SERVER_NUM_SUPPORTED_ENDPOINTS > 0
     for (size_t i = 0; i < kNumSupportedEndpoints; ++i)
     {
         sPowerSourceClusterInfo[i].Clear();
     }
-#endif
 }
 
 size_t PowerSourceServer::GetNumSupportedEndpointLists() const

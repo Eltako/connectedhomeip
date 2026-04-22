@@ -18,6 +18,7 @@
 #include <app/AttributeAccessInterfaceRegistry.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 
 #include "laundry-dryer-controls-delegate.h"
 #include "laundry-dryer-controls-server.h"
@@ -48,7 +49,7 @@ static constexpr size_t kLaundryDryerControlsDelegateTableSize =
 // Delegate Implementation
 //
 namespace {
-Delegate * gDelegateTable[kLaundryDryerControlsDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 }
 
 namespace {
@@ -148,6 +149,10 @@ CHIP_ERROR LaundryDryerControlsServer::ReadSupportedDrynessLevels(const Concrete
 
 void MatterLaundryDryerControlsPluginServerInitCallback()
 {
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLaundryDryerControlsDelegateTableSize);
+    }
     LaundryDryerControlsServer & laundryDryerControlsServer = LaundryDryerControlsServer::Instance();
     AttributeAccessInterfaceRegistry::Instance().Register(&laundryDryerControlsServer);
 }

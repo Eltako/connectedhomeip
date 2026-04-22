@@ -30,6 +30,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 
 #if CHIP_DEVICE_CONFIG_APP_PLATFORM_ENABLED
@@ -57,7 +58,7 @@ using chip::app::Clusters::ApplicationBasic::Delegate;
 
 namespace {
 
-Delegate * gDelegateTable[kApplicationBasicDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -246,5 +247,9 @@ CHIP_ERROR ApplicationBasicAttrAccess::ReadAllowedVendorListAttribute(app::Attri
 
 void MatterApplicationBasicPluginServerInitCallback()
 {
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kApplicationBasicDelegateTableSize);
+    }
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gApplicationBasicAttrAccess);
 }

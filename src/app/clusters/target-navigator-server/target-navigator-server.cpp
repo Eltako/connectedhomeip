@@ -33,6 +33,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 
 #if CHIP_DEVICE_CONFIG_APP_PLATFORM_ENABLED
@@ -60,7 +61,7 @@ using chip::app::Clusters::TargetNavigator::Delegate;
 
 namespace {
 
-Delegate * gDelegateTable[kTargetNavigatorDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -261,5 +262,9 @@ void MatterTargetNavigatorClusterServerAttributeChangedCallback(const chip::app:
 
 void MatterTargetNavigatorPluginServerInitCallback()
 {
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kTargetNavigatorDelegateTableSize);
+    }
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gTargetNavigatorAttrAccess);
 }

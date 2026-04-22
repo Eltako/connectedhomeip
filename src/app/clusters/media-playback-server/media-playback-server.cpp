@@ -34,6 +34,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 
 #if CHIP_DEVICE_CONFIG_APP_PLATFORM_ENABLED
@@ -61,7 +62,7 @@ using chip::app::Clusters::MediaPlayback::Delegate;
 
 namespace {
 
-Delegate * gDelegateTable[kMediaPlaybackDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -708,5 +709,9 @@ void MatterMediaPlaybackClusterServerAttributeChangedCallback(const chip::app::C
 
 void MatterMediaPlaybackPluginServerInitCallback()
 {
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kMediaPlaybackDelegateTableSize);
+    }
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gMediaPlaybackAttrAccess);
 }

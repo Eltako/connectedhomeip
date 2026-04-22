@@ -29,6 +29,7 @@
 #include <app/server/Server.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <credentials/GroupDataProvider.h>
 #include <lib/support/CommonIterator.h>
 #include <lib/support/Span.h>
@@ -179,6 +180,16 @@ CHIP_ERROR UpdateFabricSceneInfo(EndpointId endpoint, FabricIndex fabric, Option
 
 } // namespace
 
+void ScenesServer::FabricSceneInfo::Init()
+{
+    if (mSceneInfoStructs == nullptr)
+    {
+        mSceneInfoStructs = chip::util::memory::allocate_forever<Structs::SceneInfoStruct::Type[kScenesServerMaxFabricCount]>(
+            kScenesServerMaxEndpointCount);
+        mSceneInfoStructsCount = chip::util::memory::allocate_forever<uint8_t>(kScenesServerMaxEndpointCount);
+    }
+}
+
 /// @brief Gets the SceneInfoStruct array associated to an endpoint
 /// @param endpoint target endpoint
 /// @return Optional with no value not found, Span of SceneInfoStruct
@@ -227,7 +238,7 @@ CHIP_ERROR ScenesServer::FabricSceneInfo::SetSceneInfoStruct(EndpointId endpoint
     uint8_t sceneInfoStructIndex = 0;
     if (CHIP_ERROR_NOT_FOUND == FindSceneInfoStructIndex(fabric, endpointIndex, sceneInfoStructIndex))
     {
-        VerifyOrReturnError(mSceneInfoStructsCount[endpointIndex] < ArraySize(mSceneInfoStructs[endpointIndex]),
+        VerifyOrReturnError(mSceneInfoStructsCount[endpointIndex] < kScenesServerMaxFabricCount,
                             CHIP_ERROR_NO_MEMORY);
         sceneInfoStructIndex = mSceneInfoStructsCount[endpointIndex];
 
@@ -250,7 +261,7 @@ void ScenesServer::FabricSceneInfo::ClearSceneInfoStruct(EndpointId endpoint, Fa
     ReturnOnFailure(FindSceneInfoStructIndex(fabric, endpointIndex, sceneInfoStructIndex));
 
     uint8_t nextIndex = static_cast<uint8_t>(sceneInfoStructIndex + 1);
-    uint8_t moveNum   = static_cast<uint8_t>(ArraySize(mSceneInfoStructs[endpointIndex]) - nextIndex);
+    uint8_t moveNum   = static_cast<uint8_t>(kScenesServerMaxFabricCount - nextIndex);
     // Compress the endpoint's SceneInfoStruct array
     if (moveNum)
     {
@@ -283,7 +294,7 @@ CHIP_ERROR ScenesServer::FabricSceneInfo::FindFabricSceneInfoIndex(EndpointId en
     uint16_t index =
         emberAfGetClusterServerEndpointIndex(endpoint, ScenesManagement::Id, MATTER_DM_SCENES_CLUSTER_SERVER_ENDPOINT_COUNT);
 
-    if (index < ArraySize(mSceneInfoStructs))
+    if (index < kScenesServerMaxEndpointCount)
     {
         endpointIndex = index;
         return CHIP_NO_ERROR;
@@ -301,7 +312,7 @@ CHIP_ERROR ScenesServer::FabricSceneInfo::FindFabricSceneInfoIndex(EndpointId en
 /// @return CHIP_NO_ERROR or CHIP_ERROR_NOT_FOUND, CHIP_ERROR_INVALID_ARGUMENT if invalid fabric or endpointIndex are provided
 CHIP_ERROR ScenesServer::FabricSceneInfo::FindSceneInfoStructIndex(FabricIndex fabric, size_t endpointIndex, uint8_t & index)
 {
-    VerifyOrReturnError(endpointIndex < ArraySize(mSceneInfoStructs), CHIP_ERROR_INVALID_ARGUMENT);
+    VerifyOrReturnError(endpointIndex < kScenesServerMaxEndpointCount, CHIP_ERROR_INVALID_ARGUMENT);
     VerifyOrReturnError(kUndefinedFabricIndex != fabric, CHIP_ERROR_INVALID_ARGUMENT);
 
     index = 0;
@@ -344,6 +355,7 @@ CHIP_ERROR ScenesServer::Init()
     // Prevents re-initializing
     VerifyOrReturnError(!mIsInitialized, CHIP_ERROR_INCORRECT_STATE);
 
+    mFabricSceneInfo.Init();
     ReturnErrorOnFailure(chip::app::CommandHandlerInterfaceRegistry::Instance().RegisterCommandHandler(this));
     VerifyOrReturnError(AttributeAccessInterfaceRegistry::Instance().Register(this), CHIP_ERROR_INCORRECT_STATE);
     mGroupProvider = Credentials::GetGroupDataProvider();

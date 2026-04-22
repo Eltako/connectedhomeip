@@ -35,6 +35,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 
 #include <string>
@@ -65,7 +66,7 @@ using chip::Protocols::InteractionModel::Status;
 
 namespace {
 
-Delegate * gDelegateTable[kApplicationLauncherDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -495,5 +496,9 @@ exit:
 
 void MatterApplicationLauncherPluginServerInitCallback()
 {
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kApplicationLauncherDelegateTableSize);
+    }
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gApplicationLauncherAttrAccess);
 }

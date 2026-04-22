@@ -45,6 +45,7 @@ public:
     class FabricSceneInfo
     {
     public:
+        void Init();
         Span<Structs::SceneInfoStruct::Type> GetFabricSceneInfo(EndpointId endpoint);
         Structs::SceneInfoStruct::Type * GetSceneInfoStruct(EndpointId endpoint, FabricIndex fabric);
         CHIP_ERROR SetSceneInfoStruct(EndpointId endpoint, FabricIndex fabric, Structs::SceneInfoStruct::Type & sceneInfoStruct);
@@ -68,8 +69,8 @@ public:
         /// @return CHIP_NO_ERROR or CHIP_ERROR_NOT_FOUND, CHIP_ERROR_INVALID_ARGUMENT if invalid fabric or endpoint
         CHIP_ERROR FindSceneInfoStructIndex(FabricIndex fabric, size_t endpointIndex, uint8_t & index);
 
-        Structs::SceneInfoStruct::Type mSceneInfoStructs[kScenesServerMaxEndpointCount][kScenesServerMaxFabricCount];
-        uint8_t mSceneInfoStructsCount[kScenesServerMaxEndpointCount] = { 0 };
+        Structs::SceneInfoStruct::Type (*mSceneInfoStructs)[kScenesServerMaxFabricCount] = nullptr;
+        uint8_t * mSceneInfoStructsCount = nullptr;
     };
 
     static ScenesServer & Instance();

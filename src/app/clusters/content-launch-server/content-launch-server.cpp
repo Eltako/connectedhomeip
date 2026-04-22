@@ -26,6 +26,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 
 #if CHIP_DEVICE_CONFIG_APP_PLATFORM_ENABLED
@@ -54,7 +55,7 @@ using chip::app::Clusters::ContentLauncher::Delegate;
 
 namespace {
 
-Delegate * gDelegateTable[kContentLaunchDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -286,5 +287,9 @@ exit:
 
 void MatterContentLauncherPluginServerInitCallback()
 {
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kContentLaunchDelegateTableSize);
+    }
     AttributeAccessInterfaceRegistry::Instance().Register(&gContentLauncherAttrAccess);
 }

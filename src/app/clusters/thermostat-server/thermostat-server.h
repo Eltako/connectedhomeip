@@ -53,6 +53,7 @@ class ThermostatAttrAccess : public chip::app::AttributeAccessInterface, public 
 public:
     ThermostatAttrAccess() : AttributeAccessInterface(Optional<chip::EndpointId>::Missing(), Thermostat::Id) {}
 
+    void Init();
     CHIP_ERROR Read(const ConcreteReadAttributePath & aPath, AttributeValueEncoder & aEncoder) override;
     CHIP_ERROR Write(const ConcreteDataAttributePath & aPath, chip::app::AttributeValueDecoder & aDecoder) override;
 
@@ -225,7 +226,7 @@ private:
         EndpointId endpointId = kInvalidEndpointId;
     };
 
-    AtomicWriteSession mAtomicWriteSessions[kThermostatEndpointCount];
+    AtomicWriteSession * mAtomicWriteSessions = nullptr;
 };
 
 /**

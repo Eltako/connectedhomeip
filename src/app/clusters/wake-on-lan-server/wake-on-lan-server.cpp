@@ -32,6 +32,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 
 using namespace chip;
@@ -49,7 +50,7 @@ using chip::app::Clusters::WakeOnLan::Delegate;
 
 namespace {
 
-Delegate * gDelegateTable[kWakeOnLanDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -142,5 +143,9 @@ CHIP_ERROR WakeOnLanAttrAccess::ReadMacAddressAttribute(app::AttributeValueEncod
 
 void MatterWakeOnLanPluginServerInitCallback()
 {
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kWakeOnLanDelegateTableSize);
+    }
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gWakeOnLanAttrAccess);
 }
