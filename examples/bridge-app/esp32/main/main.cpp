@@ -38,6 +38,7 @@
 
 #include <app/InteractionModelEngine.h>
 #include <app/server/Server.h>
+#include <app/util/memory.h>
 
 #if CONFIG_ENABLE_ESP32_FACTORY_DATA_PROVIDER
 #include <platform/ESP32/ESP32FactoryDataProvider.h>
@@ -77,7 +78,7 @@ static const int kDescriptorAttributeArraySize = 254;
 
 static EndpointId gCurrentEndpointId;
 static EndpointId gFirstDynamicEndpointId;
-static Device * gDevices[CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT]; // number of dynamic endpoints count
+static Device ** gDevices = nullptr; // number of dynamic endpoints count
 
 // 4 Bridged devices
 static Device gLight1("Light 1", "Office");
@@ -421,9 +422,10 @@ extern "C" void app_main()
 
     CHIP_ERROR chip_err = CHIP_NO_ERROR;
 
-    // bridge will have own database named gDevices.
-    // Clear database
-    memset(gDevices, 0, sizeof(gDevices));
+    if (gDevices == nullptr)
+    {
+        gDevices = chip::util::memory::allocate_forever<Device *>(CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT);
+    }
 
 #if CHIP_DEVICE_CONFIG_ENABLE_WIFI
     if (DeviceLayer::Internal::ESP32Utils::InitWiFiStack() != CHIP_NO_ERROR)

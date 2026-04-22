@@ -33,6 +33,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 
 using namespace chip;
@@ -50,7 +51,7 @@ using chip::app::Clusters::AudioOutput::Delegate;
 
 namespace {
 
-Delegate * gDelegateTable[kAudioOutputDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -74,6 +75,17 @@ namespace chip {
 namespace app {
 namespace Clusters {
 namespace AudioOutput {
+
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kAudioOutputDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
 
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
@@ -244,5 +256,6 @@ exit:
 
 void MatterAudioOutputPluginServerInitCallback()
 {
+    setup();
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gAudioOutputAttrAccess);
 }

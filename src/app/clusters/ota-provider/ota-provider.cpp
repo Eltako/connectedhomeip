@@ -22,6 +22,7 @@
 #include <app/ConcreteCommandPath.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 #include <protocols/interaction_model/Constants.h>
 
@@ -54,7 +55,7 @@ constexpr size_t kMaxMetadataLen       = 512; // The maximum length of Metadata 
 constexpr size_t kUpdateTokenMaxLength = 32;  // The expected length of the Update Token parameter used in multiple commands
 constexpr size_t kUpdateTokenMinLength = 8;   // The expected length of the Update Token parameter used in multiple commands
 
-OTAProviderDelegate * gDelegateTable[kOtaProviderDelegateTableSize] = { nullptr };
+OTAProviderDelegate ** gDelegateTable = nullptr;
 
 OTAProviderDelegate * GetDelegate(EndpointId endpoint)
 {
@@ -225,6 +226,17 @@ namespace app {
 namespace Clusters {
 namespace OTAProvider {
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<OTAProviderDelegate *>(kOtaProviderDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDelegate(EndpointId endpoint, OTAProviderDelegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, OtaSoftwareUpdateProvider::Id,
@@ -240,4 +252,7 @@ void SetDelegate(EndpointId endpoint, OTAProviderDelegate * delegate)
 } // namespace app
 } // namespace chip
 
-void MatterOtaSoftwareUpdateProviderPluginServerInitCallback() {}
+void MatterOtaSoftwareUpdateProviderPluginServerInitCallback()
+{
+    chip::app::Clusters::OTAProvider::setup();
+}

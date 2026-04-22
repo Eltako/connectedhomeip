@@ -23,6 +23,7 @@
 #include <app/data-model/Encode.h>
 #include <app/reporting/reporting.h>
 #include <app/util/attribute-storage.h>
+#include <app/util/memory.h>
 #include <lib/core/CHIPError.h>
 
 using chip::Protocols::InteractionModel::Status;
@@ -33,14 +34,29 @@ namespace Clusters {
 namespace OccupancySensing {
 
 namespace {
-Structs::HoldTimeLimitsStruct::Type
-    sHoldTimeLimitsStructs[MATTER_DM_OCCUPANCY_SENSING_CLUSTER_SERVER_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT];
-
-uint16_t sHoldTime[MATTER_DM_OCCUPANCY_SENSING_CLUSTER_SERVER_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT];
+constexpr size_t kOccupancySensingEndpointCount =
+    MATTER_DM_OCCUPANCY_SENSING_CLUSTER_SERVER_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT;
+Structs::HoldTimeLimitsStruct::Type * sHoldTimeLimitsStructs = nullptr;
+uint16_t * sHoldTime                                         = nullptr;
 } // namespace
+
+bool setup()
+{
+    if (sHoldTimeLimitsStructs == nullptr)
+    {
+        sHoldTimeLimitsStructs =
+            chip::util::memory::allocate_forever<Structs::HoldTimeLimitsStruct::Type>(kOccupancySensingEndpointCount);
+    }
+    if (sHoldTime == nullptr)
+    {
+        sHoldTime = chip::util::memory::allocate_forever<uint16_t>(kOccupancySensingEndpointCount);
+    }
+    return sHoldTimeLimitsStructs != nullptr && sHoldTime != nullptr;
+}
 
 CHIP_ERROR Instance::Init()
 {
+    VerifyOrReturnError(setup(), CHIP_ERROR_NO_MEMORY);
     VerifyOrReturnError(chip::app::AttributeAccessInterfaceRegistry::Instance().Register(this), CHIP_ERROR_INCORRECT_STATE);
     return CHIP_NO_ERROR;
 }
@@ -132,7 +148,7 @@ Structs::HoldTimeLimitsStruct::Type * GetHoldTimeLimitsForEndpoint(EndpointId en
         return nullptr;
     }
 
-    if (index >= ArraySize(sHoldTimeLimitsStructs))
+    if (index >= kOccupancySensingEndpointCount)
     {
         ChipLogError(NotSpecified, "Internal error: invalid/unexpected hold time limits index.");
         return nullptr;
@@ -167,7 +183,7 @@ uint16_t * GetHoldTimeForEndpoint(EndpointId endpoint)
         return nullptr;
     }
 
-    if (index >= ArraySize(sHoldTimeLimitsStructs))
+    if (index >= kOccupancySensingEndpointCount)
     {
         ChipLogError(NotSpecified, "Internal error: invalid/unexpected hold time index.");
         return nullptr;
@@ -270,4 +286,7 @@ HalOccupancySensorType __attribute__((weak)) halOccupancyGetSensorType(EndpointI
     return HAL_OCCUPANCY_SENSOR_TYPE_PIR;
 }
 
-void MatterOccupancySensingPluginServerInitCallback() {}
+void MatterOccupancySensingPluginServerInitCallback()
+{
+    chip::app::Clusters::OccupancySensing::setup();
+}

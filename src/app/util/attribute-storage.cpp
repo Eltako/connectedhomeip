@@ -26,6 +26,7 @@
 #include <app/reporting/reporting.h>
 #include <app/util/config.h>
 #include <app/util/ember-strings.h>
+#include <app/util/memory.h>
 #include <app/util/endpoint-config-api.h>
 #include <app/util/generic-callbacks.h>
 #include <lib/core/CHIPConfig.h>
@@ -51,7 +52,7 @@ using namespace chip::app;
 // Globals
 // This is not declared CONST in order to handle dynamic endpoint information
 // retrieved from tokens.
-EmberAfDefinedEndpoint emAfEndpoints[MAX_ENDPOINT_COUNT];
+EmberAfDefinedEndpoint * emAfEndpoints = nullptr;
 
 #if (ATTRIBUTE_MAX_SIZE == 0)
 #define ACTUAL_ATTRIBUTE_SIZE 1
@@ -182,6 +183,11 @@ void emberAfEndpointConfigure()
                   "FIXED_ENDPOINT_COUNT must not exceed the size of the endpoint data type");
 
     emberEndpointCount = FIXED_ENDPOINT_COUNT;
+
+    if (emAfEndpoints == nullptr)
+    {
+        emAfEndpoints = chip::util::memory::allocate_forever<EmberAfDefinedEndpoint>(MAX_ENDPOINT_COUNT);
+    }
 
 #if FIXED_ENDPOINT_COUNT > 0
 

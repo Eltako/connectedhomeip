@@ -42,6 +42,8 @@ enum class OptionalAttributes : uint32_t
     kOptionalAttributeCumulativeEnergyReset = 0x1,
 };
 
+bool setup();
+
 class ElectricalEnergyMeasurementAttrAccess : public AttributeAccessInterface
 {
 public:

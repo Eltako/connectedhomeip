@@ -28,6 +28,7 @@
 #include <app/server/OnboardingCodesUtil.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/endpoint-config-api.h>
+#include <app/util/memory.h>
 #include <assert.h>
 #include <lib/core/CHIPError.h>
 #include <lib/core/ErrorStr.h>
@@ -46,7 +47,7 @@ using namespace ::chip::app::Clusters;
 static EndpointId gCurrentEndpointId;
 static EndpointId gFirstDynamicEndpointId;
 
-static SubDevice * gSubDevices[CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT]; // number of dynamic endpoints count
+static SubDevice ** gSubDevices = nullptr; // number of dynamic endpoints count
 
 int AddDeviceEndpoint(SubDevice * dev, EmberAfEndpointType * ep, const Span<const EmberAfDeviceType> & deviceTypeList,
                       const Span<DataVersion> & dataVersionStorage, chip::EndpointId parentEndpointId)
@@ -253,8 +254,10 @@ bool emberAfActionsClusterInstantActionCallback(app::CommandHandler * commandObj
 
 void Init_Bridge_Endpoint()
 {
-    // bridge will have own database named gSubDevices.
-    // Clear database
+    if (gSubDevices == nullptr)
+    {
+        gSubDevices = chip::util::memory::allocate_forever<SubDevice *>(CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT);
+    }
     memset(gSubDevices, 0, sizeof(gSubDevices));
 
     // Set starting endpoint id where dynamic endpoints will be assigned, which

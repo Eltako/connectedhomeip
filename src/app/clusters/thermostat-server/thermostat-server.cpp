@@ -29,6 +29,7 @@
 #include <app/ConcreteCommandPath.h>
 #include <app/server/Server.h>
 #include <app/util/endpoint-config-api.h>
+#include <app/util/memory.h>
 #include <lib/core/CHIPEncoding.h>
 
 using namespace chip;
@@ -69,7 +70,7 @@ constexpr int8_t kDefaultDeadBand                 = 25; // 2.5C is the default
 
 static_assert(kThermostatEndpointCount <= kEmberInvalidEndpointIndex, "Thermostat Delegate table size error");
 
-Delegate * gDelegateTable[kThermostatEndpointCount] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 namespace chip {
 namespace app {
@@ -77,6 +78,24 @@ namespace Clusters {
 namespace Thermostat {
 
 ThermostatAttrAccess gThermostatAttrAccess;
+
+bool setup()
+{
+    gThermostatAttrAccess.Init();
+    return gDelegateTable != nullptr;
+}
+
+void ThermostatAttrAccess::Init()
+{
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<std::remove_pointer_t<decltype(gDelegateTable)>>(kThermostatEndpointCount);
+    }
+    if (mAtomicWriteSessions == nullptr)
+    {
+        mAtomicWriteSessions = chip::util::memory::allocate_forever<AtomicWriteSession>(kThermostatEndpointCount);
+    }
+}
 
 int16_t EnforceHeatingSetpointLimits(int16_t HeatingSetpoint, EndpointId endpoint)
 {
@@ -224,7 +243,7 @@ Delegate * GetDelegate(EndpointId endpoint)
 {
     uint16_t ep =
         emberAfGetClusterServerEndpointIndex(endpoint, Thermostat::Id, MATTER_DM_THERMOSTAT_CLUSTER_SERVER_ENDPOINT_COUNT);
-    return (ep >= ArraySize(gDelegateTable) ? nullptr : gDelegateTable[ep]);
+    return (ep >= kThermostatEndpointCount ? nullptr : gDelegateTable[ep]);
 }
 
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
@@ -232,7 +251,7 @@ void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
     uint16_t ep =
         emberAfGetClusterServerEndpointIndex(endpoint, Thermostat::Id, MATTER_DM_THERMOSTAT_CLUSTER_SERVER_ENDPOINT_COUNT);
     // if endpoint is found, add the delegate in the delegate table
-    if (ep < ArraySize(gDelegateTable))
+    if (ep < kThermostatEndpointCount)
     {
         gDelegateTable[ep] = delegate;
     }
@@ -458,7 +477,7 @@ CHIP_ERROR ThermostatAttrAccess::Write(const ConcreteDataAttributePath & aPath, 
 
 void ThermostatAttrAccess::OnFabricRemoved(const FabricTable & fabricTable, FabricIndex fabricIndex)
 {
-    for (size_t i = 0; i < ArraySize(mAtomicWriteSessions); ++i)
+    for (size_t i = 0; i < kThermostatEndpointCount; ++i)
     {
         auto & atomicWriteState = mAtomicWriteSessions[i];
         if (atomicWriteState.state == AtomicWriteState::Open && atomicWriteState.nodeId.GetFabricIndex() == fabricIndex)
@@ -1083,6 +1102,7 @@ bool emberAfThermostatClusterSetpointRaiseLowerCallback(app::CommandHandler * co
 
 void MatterThermostatPluginServerInitCallback()
 {
+    chip::app::Clusters::Thermostat::setup();
     Server::GetInstance().GetFabricTable().AddFabricDelegate(&gThermostatAttrAccess);
     AttributeAccessInterfaceRegistry::Instance().Register(&gThermostatAttrAccess);
 }

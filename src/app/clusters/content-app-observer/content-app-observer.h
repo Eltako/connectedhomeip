@@ -31,6 +31,7 @@ namespace app {
 namespace Clusters {
 namespace ContentAppObserver {
 
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 
 } // namespace ContentAppObserver

@@ -28,6 +28,7 @@
 #include <app/cluster-building-blocks/QuieterReporting.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <app/util/util.h>
 
 #include <app/reporting/reporting.h>
@@ -104,7 +105,7 @@ struct EmberAfLevelControlState
     QuieterReportingAttribute<uint16_t> quietRemainingTime{ DataModel::MakeNullable<uint16_t>(0) };
 };
 
-static EmberAfLevelControlState stateTable[kLevelControlStateTableSize];
+static EmberAfLevelControlState * stateTable = nullptr;
 
 static EmberAfLevelControlState * getState(EndpointId endpoint);
 
@@ -124,6 +125,17 @@ static void setOnOffValue(EndpointId endpoint, bool onOff);
 static void writeRemainingTime(EndpointId endpoint, uint16_t remainingTimeMs, bool isNewTransition = false);
 static bool shouldExecuteIfOff(EndpointId endpoint, CommandId commandId, chip::Optional<chip::BitMask<OptionsBitmap>> optionsMask,
                                chip::Optional<chip::BitMask<OptionsBitmap>> optionsOverride);
+
+bool LevelControlServer::setup()
+{
+    if (stateTable != nullptr)
+    {
+        return true;
+    }
+
+    stateTable = chip::util::memory::allocate_forever<EmberAfLevelControlState>(kLevelControlStateTableSize);
+    return stateTable != nullptr;
+}
 
 static Status SetCurrentLevelQuietReport(EndpointId endpoint, EmberAfLevelControlState * state,
                                          DataModel::Nullable<uint8_t> newValue, bool isEndOfTransition);
@@ -1464,6 +1476,8 @@ void emberAfOnOffClusterLevelControlEffectCallback(EndpointId endpoint, bool new
 
 void emberAfLevelControlClusterServerInitCallback(EndpointId endpoint)
 {
+    LevelControlServer::setup();
+
     EmberAfLevelControlState * state = getState(endpoint);
 
     if (state == nullptr)
@@ -1592,4 +1606,7 @@ bool LevelControlHasFeature(EndpointId endpoint, Feature feature)
     return success ? ((featureMap & to_underlying(feature)) != 0) : false;
 }
 
-void MatterLevelControlPluginServerInitCallback() {}
+void MatterLevelControlPluginServerInitCallback()
+{
+    LevelControlServer::setup();
+}

@@ -24,6 +24,7 @@ namespace app {
 namespace Clusters {
 namespace AccountLogin {
 
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 
 } // namespace AccountLogin

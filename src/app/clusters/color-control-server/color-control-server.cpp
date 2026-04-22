@@ -23,6 +23,7 @@
 #include <app/ConcreteCommandPath.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <lib/core/Optional.h>
 #include <platform/CHIPDeviceLayer.h>
 #include <platform/PlatformManager.h>
@@ -37,6 +38,56 @@ using namespace chip::app;
 using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::ColorControl;
 using chip::Protocols::InteractionModel::Status;
+
+void ColorControlServer::Init()
+{
+#ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_HSV
+    if (colorHueTransitionStates == nullptr)
+    {
+        colorHueTransitionStates = chip::util::memory::allocate_forever<ColorHueTransitionState>(
+            kColorControlClusterServerMaxEndpointCount);
+        colorSatTransitionStates = chip::util::memory::allocate_forever<Color16uTransitionState>(
+            kColorControlClusterServerMaxEndpointCount);
+        quietHue = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint8_t>>(
+            kColorControlClusterServerMaxEndpointCount);
+        quietSaturation = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint8_t>>(
+            kColorControlClusterServerMaxEndpointCount);
+        quietEnhancedHue = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
+            kColorControlClusterServerMaxEndpointCount);
+    }
+#endif
+
+#ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_XY
+    if (colorXtransitionStates == nullptr)
+    {
+        colorXtransitionStates = chip::util::memory::allocate_forever<Color16uTransitionState>(
+            kColorControlClusterServerMaxEndpointCount);
+        colorYtransitionStates = chip::util::memory::allocate_forever<Color16uTransitionState>(
+            kColorControlClusterServerMaxEndpointCount);
+        quietColorX = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
+            kColorControlClusterServerMaxEndpointCount);
+        quietColorY = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
+            kColorControlClusterServerMaxEndpointCount);
+    }
+#endif
+
+#ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_TEMP
+    if (colorTempTransitionStates == nullptr)
+    {
+        colorTempTransitionStates = chip::util::memory::allocate_forever<Color16uTransitionState>(
+            kColorControlClusterServerMaxEndpointCount);
+        quietTemperatureMireds = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
+            kColorControlClusterServerMaxEndpointCount);
+    }
+#endif
+
+    if (eventControls == nullptr)
+    {
+        eventControls = chip::util::memory::allocate_forever<EmberEventControl>(kColorControlClusterServerMaxEndpointCount);
+        quietRemainingTime = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
+            kColorControlClusterServerMaxEndpointCount);
+    }
+}
 
 #if defined(MATTER_DM_PLUGIN_SCENES_MANAGEMENT) && CHIP_CONFIG_SCENES_USE_DEFAULT_HANDLERS
 class DefaultColorControlSceneHandler : public scenes::DefaultSceneHandlerImpl
@@ -692,7 +743,7 @@ EmberEventControl * ColorControlServer::getEventControl(EndpointId endpoint)
     uint16_t index            = getEndpointIndex(endpoint);
     EmberEventControl * event = nullptr;
 
-    if (index < ArraySize(eventControls))
+    if (index < kColorControlClusterServerMaxEndpointCount)
     {
         event = &eventControls[index];
     }
@@ -820,7 +871,7 @@ ColorControlServer::ColorHueTransitionState * ColorControlServer::getColorHueTra
 {
     ColorHueTransitionState * state = nullptr;
 
-    if (index < ArraySize(colorHueTransitionStates))
+    if (index < kColorControlClusterServerMaxEndpointCount)
     {
         state = &colorHueTransitionStates[index];
     }
@@ -848,7 +899,7 @@ ColorControlServer::Color16uTransitionState * ColorControlServer::getSaturationT
 {
     Color16uTransitionState * state = nullptr;
 
-    if (index < ArraySize(colorSatTransitionStates))
+    if (index < kColorControlClusterServerMaxEndpointCount)
     {
         state = &colorSatTransitionStates[index];
     }
@@ -2162,7 +2213,7 @@ void ColorControlServer::updateHueSatCommand(EndpointId endpoint)
 ColorControlServer::Color16uTransitionState * ColorControlServer::getXTransitionStateByIndex(uint16_t index)
 {
     Color16uTransitionState * state = nullptr;
-    if (index < ArraySize(colorXtransitionStates))
+    if (index < kColorControlClusterServerMaxEndpointCount)
     {
         state = &colorXtransitionStates[index];
     }
@@ -2190,7 +2241,7 @@ ColorControlServer::Color16uTransitionState * ColorControlServer::getXTransition
 ColorControlServer::Color16uTransitionState * ColorControlServer::getYTransitionStateByIndex(uint16_t index)
 {
     Color16uTransitionState * state = nullptr;
-    if (index < ArraySize(colorYtransitionStates))
+    if (index < kColorControlClusterServerMaxEndpointCount)
     {
         state = &colorYtransitionStates[index];
     }
@@ -2543,7 +2594,7 @@ void ColorControlServer::updateXYCommand(EndpointId endpoint)
 ColorControlServer::Color16uTransitionState * ColorControlServer::getTempTransitionStateByIndex(uint16_t index)
 {
     Color16uTransitionState * state = nullptr;
-    if (index < ArraySize(colorTempTransitionStates))
+    if (index < kColorControlClusterServerMaxEndpointCount)
     {
         state = &colorTempTransitionStates[index];
     }
@@ -3408,4 +3459,7 @@ void emberAfPluginColorControlServerHueSatTransitionEventHandler(EndpointId endp
 }
 #endif // MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_HSV
 
-void MatterColorControlPluginServerInitCallback() {}
+void MatterColorControlPluginServerInitCallback()
+{
+    ColorControlServer::Instance().Init();
+}

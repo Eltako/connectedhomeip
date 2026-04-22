@@ -25,6 +25,7 @@
 #include <app/reporting/reporting.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <zap-generated/gen_config.h>
 
 using chip::Protocols::InteractionModel::Status;
@@ -38,11 +39,22 @@ using namespace chip;
 using namespace chip::app::Clusters::ElectricalEnergyMeasurement::Attributes;
 using namespace chip::app::Clusters::ElectricalEnergyMeasurement::Structs;
 
-MeasurementData gMeasurements[MATTER_DM_ELECTRICAL_ENERGY_MEASUREMENT_CLUSTER_SERVER_ENDPOINT_COUNT +
-                              CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT];
+constexpr size_t kElectricalEnergyMeasurementEndpointCount =
+    MATTER_DM_ELECTRICAL_ENERGY_MEASUREMENT_CLUSTER_SERVER_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT;
+MeasurementData * gMeasurements = nullptr;
+
+bool setup()
+{
+    if (gMeasurements == nullptr)
+    {
+        gMeasurements = chip::util::memory::allocate_forever<MeasurementData>(kElectricalEnergyMeasurementEndpointCount);
+    }
+    return gMeasurements != nullptr;
+}
 
 CHIP_ERROR ElectricalEnergyMeasurementAttrAccess::Init()
 {
+    VerifyOrReturnError(setup(), CHIP_ERROR_NO_MEMORY);
     VerifyOrReturnError(AttributeAccessInterfaceRegistry::Instance().Register(this), CHIP_ERROR_INCORRECT_STATE);
     return CHIP_NO_ERROR;
 }
@@ -153,7 +165,7 @@ MeasurementData * MeasurementDataForEndpoint(EndpointId endpointId)
         return nullptr;
     }
 
-    if (index >= ArraySize(gMeasurements))
+    if (index >= kElectricalEnergyMeasurementEndpointCount)
     {
         ChipLogError(NotSpecified, "Internal error: invalid/unexpected energy measurement index.");
         return nullptr;

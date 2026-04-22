@@ -37,6 +37,7 @@ namespace app {
 namespace Clusters {
 namespace ValveConfigurationAndControl {
 
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 Delegate * GetDefaultDelegate(EndpointId endpoint);
 

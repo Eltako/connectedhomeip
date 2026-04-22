@@ -121,7 +121,7 @@ private:
 
     chip::EndpointId mCurrentEndpointId;
     chip::EndpointId mFirstDynamicEndpointId;
-    std::unique_ptr<BridgedDevice> mDevices[CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT + 1];
+    std::unique_ptr<BridgedDevice> * mDevices = nullptr;
 };
 
 /**

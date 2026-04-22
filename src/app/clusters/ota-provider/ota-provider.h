@@ -25,6 +25,7 @@ namespace app {
 namespace Clusters {
 namespace OTAProvider {
 
+bool setup();
 void SetDelegate(chip::EndpointId endpointId, OTAProviderDelegate * delegate);
 
 }

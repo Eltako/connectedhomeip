@@ -111,6 +111,7 @@ public:
      * possibly other new features, to work.
      */
     CHIP_ERROR InitEndpoint(chip::EndpointId endpointId, chip::app::Clusters::DoorLock::Delegate * delegate = nullptr);
+    void InitEndpointContext();
 
     void ShutdownEndpoint(chip::EndpointId endpointId);
 
@@ -738,7 +739,7 @@ private:
         MATTER_DM_DOOR_LOCK_CLUSTER_SERVER_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT;
     static_assert(kDoorLockClusterServerMaxEndpointCount <= kEmberInvalidEndpointIndex, "DoorLock Endpoint count error");
 
-    std::array<EmberAfDoorLockEndpointContext, kDoorLockClusterServerMaxEndpointCount> mEndpointCtx;
+    EmberAfDoorLockEndpointContext * mEndpointCtx = nullptr;
 
     OnFabricRemovedCustomCallback mOnFabricRemovedCustomCallback{ nullptr };
 

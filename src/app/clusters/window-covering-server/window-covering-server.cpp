@@ -25,7 +25,9 @@
 #include <app/util/af-types.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <lib/support/TypeTraits.h>
+#include <algorithm>
 #include <string.h>
 
 #ifdef MATTER_DM_PLUGIN_SCENES_MANAGEMENT
@@ -48,7 +50,7 @@ constexpr size_t kWindowCoveringDelegateTableSize =
     MATTER_DM_WINDOW_COVERING_CLUSTER_SERVER_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT;
 static_assert(kWindowCoveringDelegateTableSize <= kEmberInvalidEndpointIndex, "WindowCovering Delegate table size error");
 
-Delegate * gDelegateTable[kWindowCoveringDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -111,6 +113,24 @@ namespace chip {
 namespace app {
 namespace Clusters {
 namespace WindowCovering {
+
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    Delegate ** result = chip::util::memory::allocate_forever<Delegate *>(kWindowCoveringDelegateTableSize);
+    if (result == nullptr)
+    {
+        return false;
+    }
+
+    std::fill_n(result, kWindowCoveringDelegateTableSize, nullptr);
+    gDelegateTable = result;
+    return true;
+}
 
 bool HasFeature(chip::EndpointId endpoint, Feature feature)
 {
@@ -974,4 +994,7 @@ MatterWindowCoveringClusterServerAttributeChangedCallback(const app::ConcreteAtt
 /**
  * @brief Cluster Plugin Init Callback
  */
-void MatterWindowCoveringPluginServerInitCallback() {}
+void MatterWindowCoveringPluginServerInitCallback()
+{
+    chip::app::Clusters::WindowCovering::setup();
+}

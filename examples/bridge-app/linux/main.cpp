@@ -29,6 +29,7 @@
 #include <app/util/af-types.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/endpoint-config-api.h>
+#include <app/util/memory.h>
 #include <app/util/util.h>
 #include <credentials/DeviceAttestationCredsProvider.h>
 #include <credentials/examples/DeviceAttestationCredsExample.h>
@@ -70,7 +71,7 @@ const int kDescriptorAttributeArraySize = 254;
 EndpointId gCurrentEndpointId;
 EndpointId gFirstDynamicEndpointId;
 // Power source is on the same endpoint as the composed device
-Device * gDevices[CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT + 1];
+Device ** gDevices = nullptr;
 std::vector<Room *> gRooms;
 std::vector<Action *> gActions;
 
@@ -910,8 +911,10 @@ void * bridge_polling_thread(void * context)
 
 void ApplicationInit()
 {
-    // Clear out the device database
-    memset(gDevices, 0, sizeof(gDevices));
+    if (gDevices == nullptr)
+    {
+        gDevices = chip::util::memory::allocate_forever<Device *>(CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT + 1);
+    }
 
     // Setup Mock Devices
     Light1.SetReachable(true);

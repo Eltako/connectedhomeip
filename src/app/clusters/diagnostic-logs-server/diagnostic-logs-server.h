@@ -27,6 +27,8 @@ namespace app {
 namespace Clusters {
 namespace DiagnosticLogs {
 
+bool setup();
+
 /// A reference implementation for DiagnosticLogs source.
 class DiagnosticLogsServer
 {

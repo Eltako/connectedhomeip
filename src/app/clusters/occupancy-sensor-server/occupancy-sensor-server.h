@@ -30,6 +30,8 @@ namespace app {
 namespace Clusters {
 namespace OccupancySensing {
 
+bool setup();
+
 class Instance : public AttributeAccessInterface
 {
 public:

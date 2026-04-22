@@ -19,6 +19,7 @@
 
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <lib/support/ScopedBuffer.h>
 #include <protocols/bdx/DiagnosticLogs.h>
 
@@ -43,14 +44,13 @@ namespace DiagnosticLogs {
 
 namespace {
 
-DiagnosticLogsProviderDelegate * gDiagnosticLogsProviderDelegateTable[kDiagnosticLogsDiagnosticLogsProviderDelegateTableSize] = {
-    nullptr
-};
+DiagnosticLogsProviderDelegate ** gDiagnosticLogsProviderDelegateTable = nullptr;
 
 DiagnosticLogsProviderDelegate * GetDiagnosticLogsProviderDelegate(EndpointId endpoint)
 {
     uint16_t ep   = emberAfGetClusterServerEndpointIndex(endpoint, Id, MATTER_DM_DIAGNOSTIC_LOGS_CLUSTER_SERVER_ENDPOINT_COUNT);
-    auto delegate = (ep >= ArraySize(gDiagnosticLogsProviderDelegateTable) ? nullptr : gDiagnosticLogsProviderDelegateTable[ep]);
+    auto delegate =
+        (ep >= kDiagnosticLogsDiagnosticLogsProviderDelegateTableSize ? nullptr : gDiagnosticLogsProviderDelegateTable[ep]);
 
     if (delegate == nullptr)
     {
@@ -86,6 +86,18 @@ BDXDiagnosticLogsProvider gBDXDiagnosticLogsProvider;
 } // anonymous namespace
 
 DiagnosticLogsServer DiagnosticLogsServer::sInstance;
+
+bool setup()
+{
+    if (gDiagnosticLogsProviderDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDiagnosticLogsProviderDelegateTable = chip::util::memory::allocate_forever<DiagnosticLogsProviderDelegate *>(
+        kDiagnosticLogsDiagnosticLogsProviderDelegateTableSize);
+    return gDiagnosticLogsProviderDelegateTable != nullptr;
+}
 
 void DiagnosticLogsServer::SetDiagnosticLogsProviderDelegate(EndpointId endpoint, DiagnosticLogsProviderDelegate * delegate)
 {
@@ -192,5 +204,8 @@ bool emberAfDiagnosticLogsClusterRetrieveLogsRequestCallback(chip::app::CommandH
     return true;
 }
 
-void MatterDiagnosticLogsPluginServerInitCallback() {}
+void MatterDiagnosticLogsPluginServerInitCallback()
+{
+    chip::app::Clusters::DiagnosticLogs::setup();
+}
 #endif // #ifdef MATTER_DM_DIAGNOSTIC_LOGS_CLUSTER_SERVER_ENDPOINT_COUNT

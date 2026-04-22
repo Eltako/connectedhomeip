@@ -38,6 +38,7 @@
 #include <app/data-model/Encode.h>
 #include <app/reporting/reporting.h>
 #include <app/util/attribute-storage.h>
+#include <app/util/memory.h>
 #include <lib/core/CHIPError.h>
 #include <lib/support/logging/CHIPLogging.h>
 #include <platform/CHIPDeviceConfig.h>
@@ -64,8 +65,8 @@ struct RemainingDurationTable
     DataModel::Nullable<uint32_t> remainingDuration;
 };
 
-RemainingDurationTable gRemainingDuration[kValveConfigurationAndControlDelegateTableSize];
-Delegate * gDelegateTable[kValveConfigurationAndControlDelegateTableSize] = { nullptr };
+RemainingDurationTable * gRemainingDuration = nullptr;
+Delegate ** gDelegateTable                  = nullptr;
 
 bool GetRemainingDuration(EndpointId endpoint, DataModel::Nullable<uint32_t> & duration)
 {
@@ -259,6 +260,20 @@ namespace app {
 namespace Clusters {
 namespace ValveConfigurationAndControl {
 
+bool setup()
+{
+    if (gRemainingDuration == nullptr)
+    {
+        gRemainingDuration =
+            chip::util::memory::allocate_forever<RemainingDurationTable>(kValveConfigurationAndControlDelegateTableSize);
+    }
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kValveConfigurationAndControlDelegateTableSize);
+    }
+    return gRemainingDuration != nullptr && gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, ValveConfigurationAndControl::Id,
@@ -396,8 +411,9 @@ CHIP_ERROR EmitValveFault(EndpointId ep, BitMask<ValveConfigurationAndControl::V
 
 void UpdateAutoCloseTime(uint64_t time)
 {
-    for (auto & t : gRemainingDuration)
+    for (std::size_t i = 0; i < kValveConfigurationAndControlDelegateTableSize; ++i)
     {
+        auto & t = gRemainingDuration[i];
         const auto & d = t.remainingDuration;
         if (!d.IsNull() && d.Value() != 0)
         {
@@ -514,5 +530,6 @@ bool emberAfValveConfigurationAndControlClusterCloseCallback(
 
 void MatterValveConfigurationAndControlPluginServerInitCallback()
 {
+    chip::app::Clusters::ValveConfigurationAndControl::setup();
     AttributeAccessInterfaceRegistry::Instance().Register(&gAttrAccess);
 }

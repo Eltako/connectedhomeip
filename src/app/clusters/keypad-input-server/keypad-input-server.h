@@ -31,6 +31,7 @@ namespace app {
 namespace Clusters {
 namespace KeypadInput {
 
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 
 } // namespace KeypadInput

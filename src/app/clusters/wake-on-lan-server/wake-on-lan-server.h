@@ -30,6 +30,7 @@ namespace app {
 namespace Clusters {
 namespace WakeOnLan {
 
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 
 } // namespace WakeOnLan

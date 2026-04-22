@@ -26,6 +26,7 @@ namespace app {
 namespace Clusters {
 namespace Messages {
 
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 
 } // namespace Messages

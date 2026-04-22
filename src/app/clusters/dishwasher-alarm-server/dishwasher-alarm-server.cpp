@@ -24,6 +24,7 @@
 #include <app/InteractionModelEngine.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <lib/support/BitFlags.h>
 
 using namespace chip;
@@ -44,13 +45,24 @@ namespace app {
 namespace Clusters {
 namespace DishwasherAlarm {
 
-Delegate * gDelegateTable[kDishwasherAlarmDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, DishwasherAlarm::Id,
                                                        MATTER_DM_DISHWASHER_ALARM_CLUSTER_SERVER_ENDPOINT_COUNT);
     return (ep >= kDishwasherAlarmDelegateTableSize ? nullptr : gDelegateTable[ep]);
+}
+
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kDishwasherAlarmDelegateTableSize);
+    return gDelegateTable != nullptr;
 }
 
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
@@ -395,4 +407,9 @@ bool emberAfDishwasherAlarmClusterModifyEnabledAlarmsCallback(app::CommandHandle
     commandObj->AddStatus(commandPath, status);
 
     return true;
+}
+
+void MatterDishwasherAlarmPluginServerInitCallback()
+{
+    chip::app::Clusters::DishwasherAlarm::setup();
 }

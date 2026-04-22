@@ -66,11 +66,7 @@ public:
     void InvokeCommand(HandlerContext & ctx) override;
 
     // Attribute storage
-#if SAMPLE_MEI_NUM_SUPPORTED_ENDPOINTS > 0
-    SampleMeiContent content[kNumSupportedEndpoints];
-#else
     SampleMeiContent * content = nullptr;
-#endif
 
     size_t GetNumSupportedEndpoints() const;
     CHIP_ERROR RegisterEndpoint(EndpointId endpointId);

@@ -22,6 +22,7 @@
 
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <app/reporting/reporting.h>
+#include <app/util/memory.h>
 #include <app/util/endpoint-config-api.h>
 #include <lib/support/ZclString.h>
 
@@ -49,7 +50,7 @@ static const int kDescriptorAttributeArraySize = 254;
 static EndpointId gCurrentEndpointId;
 static EndpointId gFirstDynamicEndpointId;
 
-static Device * gDevices[CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT]; // number of dynamic endpoints count
+static Device ** gDevices = nullptr; // number of dynamic endpoints count
 
 const int16_t minMeasuredValue     = -27315;
 const int16_t maxMeasuredValue     = 32766;
@@ -444,6 +445,11 @@ CHIP_ERROR AppTask::Init(void)
 
 void AppTask::InitServer(intptr_t context)
 {
+    if (gDevices == nullptr)
+    {
+        gDevices = chip::util::memory::allocate_forever<Device *>(CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT);
+    }
+
     // Set starting endpoint id where dynamic endpoints will be assigned, which
     // will be the next consecutive endpoint id after the last fixed endpoint.
     gFirstDynamicEndpointId = static_cast<chip::EndpointId>(

@@ -33,6 +33,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 #include <protocols/interaction_model/StatusCode.h>
 
@@ -61,7 +62,7 @@ static_assert(kAccountLoginDeletageTableSize <= kEmberInvalidEndpointIndex, "Acc
 
 namespace {
 
-Delegate * gDelegateTable[kAccountLoginDeletageTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -95,6 +96,17 @@ namespace chip {
 namespace app {
 namespace Clusters {
 namespace AccountLogin {
+
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kAccountLoginDeletageTableSize);
+    return gDelegateTable != nullptr;
+}
 
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
@@ -261,5 +273,6 @@ exit:
 
 void MatterAccountLoginPluginServerInitCallback()
 {
+    setup();
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gAccountLoginAttrAccess);
 }

@@ -31,6 +31,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <lib/core/CHIPError.h>
 #include <lib/support/logging/CHIPLogging.h>
 #include <platform/CHIPDeviceConfig.h>
@@ -54,7 +55,7 @@ static constexpr uint8_t kMaxSupportedSensitivityLevels = 10;
 static CHIP_ERROR StoreCurrentSensitivityLevel(EndpointId ep, uint8_t level);
 
 namespace {
-Delegate * gDelegateTable[kBooleanStateConfigurationDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -232,6 +233,17 @@ namespace chip {
 namespace app {
 namespace Clusters {
 namespace BooleanStateConfiguration {
+
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kBooleanStateConfigurationDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
 
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
@@ -453,5 +465,6 @@ exit:
 
 void MatterBooleanStateConfigurationPluginServerInitCallback()
 {
+    chip::app::Clusters::BooleanStateConfiguration::setup();
     AttributeAccessInterfaceRegistry::Instance().Register(&gAttrAccess);
 }

@@ -27,6 +27,7 @@
 #include <app/data-model/Encode.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 #include <platform/CHIPDeviceConfig.h>
 
 using namespace chip;
@@ -45,7 +46,7 @@ static_assert(kMessagesDelegateTableSize <= kEmberInvalidEndpointIndex, "Message
 
 namespace {
 
-Delegate * gDelegateTable[kMessagesDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 
 Delegate * GetDelegate(EndpointId endpoint)
 {
@@ -70,6 +71,17 @@ namespace chip {
 namespace app {
 namespace Clusters {
 namespace Messages {
+
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kMessagesDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
 
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
@@ -293,5 +305,6 @@ exit:
 
 void MatterMessagesPluginServerInitCallback()
 {
+    setup();
     AttributeAccessInterfaceRegistry::Instance().Register(&gMessagesAttrAccess);
 }

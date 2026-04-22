@@ -18,6 +18,7 @@
 #include <app/AttributeAccessInterfaceRegistry.h>
 #include <app/util/attribute-storage.h>
 #include <app/util/config.h>
+#include <app/util/memory.h>
 
 #include "laundry-washer-controls-delegate.h"
 #include "laundry-washer-controls-server.h"
@@ -47,7 +48,7 @@ static constexpr size_t kLaundryWasherControlsDelegateTableSize =
 // Delegate Implementation
 //
 namespace {
-Delegate * gDelegateTable[kLaundryWasherControlsDelegateTableSize] = { nullptr };
+Delegate ** gDelegateTable = nullptr;
 }
 
 namespace {
@@ -65,6 +66,17 @@ LaundryWasherControlsServer LaundryWasherControlsServer::sInstance;
 /**********************************************************
  * LaundryWasherControlsServer public methods
  *********************************************************/
+bool chip::app::Clusters::LaundryWasherControls::setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLaundryWasherControlsDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void LaundryWasherControlsServer::SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, LaundryWasherControls::Id,
@@ -186,6 +198,7 @@ CHIP_ERROR LaundryWasherControlsServer::ReadSupportedRinses(const ConcreteReadAt
 
 void MatterLaundryWasherControlsPluginServerInitCallback()
 {
+    setup();
     LaundryWasherControlsServer & laundryWasherControlsServer = LaundryWasherControlsServer::Instance();
     AttributeAccessInterfaceRegistry::Instance().Register(&laundryWasherControlsServer);
 }

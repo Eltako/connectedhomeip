@@ -25,6 +25,7 @@ namespace app {
 namespace Clusters {
 namespace ApplicationBasic {
 
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 Delegate * GetDefaultDelegate(EndpointId endpoint);
 
