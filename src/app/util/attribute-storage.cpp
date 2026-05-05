@@ -270,6 +270,8 @@ CHIP_ERROR emberAfSetDynamicEndpoint(uint16_t index, EndpointId id, const EmberA
 
     if (realIndex >= MAX_ENDPOINT_COUNT)
     {
+        ChipLogError(DataManagement, "Index %d is out of bounds for dynamic endpoints (max %d)", index,
+                     MAX_ENDPOINT_COUNT - FIXED_ENDPOINT_COUNT);
         return CHIP_ERROR_NO_MEMORY;
     }
     if (id == kInvalidEndpointId)
@@ -280,6 +282,8 @@ CHIP_ERROR emberAfSetDynamicEndpoint(uint16_t index, EndpointId id, const EmberA
     auto serverClusterCount = emberAfClusterCountForEndpointType(ep, /* server = */ true);
     if (dataVersionStorage.size() < serverClusterCount)
     {
+        ChipLogError(DataManagement, "Endpoint %d has %d server clusters, but dataVersionStorage only has %zu entries", id,
+                     serverClusterCount, dataVersionStorage.size());
         return CHIP_ERROR_NO_MEMORY;
     }
 
