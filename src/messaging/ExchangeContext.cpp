@@ -23,6 +23,7 @@
 
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <app/icd/server/ICDServerConfig.h>
@@ -42,6 +43,7 @@
 #include <platform/LockTracker.h>
 #include <protocols/Protocols.h>
 #include <protocols/secure_channel/Constants.h>
+#include <protocols/interaction_model/Constants.h>
 
 using namespace chip::Encoding;
 using namespace chip::Inet;
@@ -100,6 +102,10 @@ CHIP_ERROR ExchangeContext::SendMessage(Protocols::Id protocolId, uint8_t msgTyp
 
     // Don't let method get called on a freed object.
     VerifyOrDie(mExchangeMgr != nullptr && GetReferenceCount() > 0);
+
+    const bool isImReportData =
+        (protocolId == Protocols::InteractionModel::Id) && (msgType == to_underlying(Protocols::InteractionModel::MsgType::ReportData));
+    const size_t payloadBytes = msgBuf.IsNull() ? 0 : msgBuf->TotalLength();
 
     // we hold the exchange context here in case the entity that
     // originally generated it tries to close it as a result of
@@ -161,6 +167,17 @@ CHIP_ERROR ExchangeContext::SendMessage(Protocols::Id protocolId, uint8_t msgTyp
         SessionHandle session = GetSessionHandle();
         CHIP_ERROR err;
 
+        if (isImReportData)
+        {
+            const auto peer = session->GetPeer();
+            printf(
+                "CHIP EXCHANGE SEND: exchangeId=%u fabric=%u peer=0x%016llx sessionId=%u payloadBytes=%lu expectResponse=%d reliable=%d\n",
+                static_cast<unsigned int>(mExchangeId), static_cast<unsigned int>(peer.GetFabricIndex()),
+                static_cast<unsigned long long>(peer.GetNodeId()), static_cast<unsigned int>(session->SessionIdForLogging()),
+                static_cast<unsigned long>(payloadBytes), sendFlags.Has(SendMessageFlags::kExpectResponse) ? 1 : 0,
+                reliableTransmissionRequested ? 1 : 0);
+        }
+
 #if CONFIG_BUILD_FOR_HOST_UNIT_TEST
         if (mInjectedFailures.Has(InjectedFailureType::kFailOnSend))
         {
@@ -177,6 +194,11 @@ CHIP_ERROR ExchangeContext::SendMessage(Protocols::Id protocolId, uint8_t msgTyp
 #endif
         if (err != CHIP_NO_ERROR)
         {
+            if (isImReportData)
+            {
+                printf("CHIP EXCHANGE SEND FAILED: exchangeId=%u err=%" CHIP_ERROR_FORMAT "\n",
+                       static_cast<unsigned int>(mExchangeId), err.Format());
+            }
             // We should only cancel the response timer if the ExchangeContext fails to send the message that expects a
             // response.
             if (currentMessageExpectResponse)
@@ -195,6 +217,10 @@ CHIP_ERROR ExchangeContext::SendMessage(Protocols::Id protocolId, uint8_t msgTyp
         }
         else
         {
+            if (isImReportData)
+            {
+                printf("CHIP EXCHANGE SEND OK: exchangeId=%u\n", static_cast<unsigned int>(mExchangeId));
+            }
 #if CHIP_CONFIG_ENABLE_ICD_SERVER
             app::ICDNotifier::GetInstance().NotifyNetworkActivityNotification();
 #endif // CHIP_CONFIG_ENABLE_ICD_SERVER

@@ -30,6 +30,7 @@
 #include <app/MessageDef/SubscribeResponseMessage.h>
 #include <app/data-model-provider/Provider.h>
 #include <app/icd/server/ICDServerConfig.h>
+#include <stdio.h>
 #include <lib/core/TLVUtilities.h>
 #include <messaging/ExchangeContext.h>
 
@@ -43,6 +44,115 @@
 namespace chip {
 namespace app {
 using Status = Protocols::InteractionModel::Status;
+
+namespace {
+
+void FormatEndpointId(char * buffer, size_t bufferSize, EndpointId endpointId)
+{
+    if (endpointId == kInvalidEndpointId)
+    {
+        snprintf(buffer, bufferSize, "*");
+        return;
+    }
+
+    snprintf(buffer, bufferSize, "%u", static_cast<unsigned int>(endpointId));
+}
+
+void FormatListIndex(char * buffer, size_t bufferSize, ListIndex listIndex)
+{
+    if (listIndex == kInvalidListIndex)
+    {
+        snprintf(buffer, bufferSize, "*");
+        return;
+    }
+
+    snprintf(buffer, bufferSize, "%u", static_cast<unsigned int>(listIndex));
+}
+
+void FormatClusterId(char * buffer, size_t bufferSize, ClusterId clusterId)
+{
+    if (clusterId == kInvalidClusterId)
+    {
+        snprintf(buffer, bufferSize, "*");
+        return;
+    }
+
+    snprintf(buffer, bufferSize, "0x%08lx", static_cast<unsigned long>(clusterId));
+}
+
+void FormatAttributeId(char * buffer, size_t bufferSize, AttributeId attributeId)
+{
+    if (attributeId == kInvalidAttributeId)
+    {
+        snprintf(buffer, bufferSize, "*");
+        return;
+    }
+
+    snprintf(buffer, bufferSize, "0x%08lx", static_cast<unsigned long>(attributeId));
+}
+
+void FormatEventId(char * buffer, size_t bufferSize, EventId eventId)
+{
+    if (eventId == kInvalidEventId)
+    {
+        snprintf(buffer, bufferSize, "*");
+        return;
+    }
+
+    snprintf(buffer, bufferSize, "0x%08lx", static_cast<unsigned long>(eventId));
+}
+
+void LogSubscribeAttributePaths(const SingleLinkedListNode<AttributePathParams> * attributePathList)
+{
+    unsigned int index = 0;
+
+    for (const SingleLinkedListNode<AttributePathParams> * path = attributePathList; path != nullptr; path = path->mpNext, index++)
+    {
+        char endpoint[16];
+        char cluster[16];
+        char attribute[16];
+        char listIndex[16];
+
+        FormatEndpointId(endpoint, sizeof(endpoint), path->mValue.mEndpointId);
+        FormatClusterId(cluster, sizeof(cluster), path->mValue.mClusterId);
+        FormatAttributeId(attribute, sizeof(attribute), path->mValue.mAttributeId);
+        FormatListIndex(listIndex, sizeof(listIndex), path->mValue.mListIndex);
+
+        printf("=== CHIP SUBSCRIBE attr[%u] ep=%s cluster=%s attr=%s list=%s ===\n", index, endpoint, cluster, attribute,
+               listIndex);
+    }
+
+    if (index == 0)
+    {
+        printf("=== CHIP SUBSCRIBE attr[none] ===\n");
+    }
+}
+
+void LogSubscribeEventPaths(const SingleLinkedListNode<EventPathParams> * eventPathList)
+{
+    unsigned int index = 0;
+
+    for (const SingleLinkedListNode<EventPathParams> * path = eventPathList; path != nullptr; path = path->mpNext, index++)
+    {
+        char endpoint[16];
+        char cluster[16];
+        char eventId[16];
+
+        FormatEndpointId(endpoint, sizeof(endpoint), path->mValue.mEndpointId);
+        FormatClusterId(cluster, sizeof(cluster), path->mValue.mClusterId);
+        FormatEventId(eventId, sizeof(eventId), path->mValue.mEventId);
+
+        printf("=== CHIP SUBSCRIBE event[%u] ep=%s cluster=%s event=%s urgent=%d ===\n", index, endpoint, cluster, eventId,
+               path->mValue.mIsUrgentEvent ? 1 : 0);
+    }
+
+    if (index == 0)
+    {
+        printf("=== CHIP SUBSCRIBE event[none] ===\n");
+    }
+}
+
+} // namespace
 
 uint16_t ReadHandler::GetPublisherSelectedIntervalLimit()
 {
@@ -166,6 +276,16 @@ ReadHandler::~ReadHandler()
 
 void ReadHandler::Close(CloseOptions options)
 {
+    if (IsType(InteractionType::Subscribe))
+    {
+        printf(
+            "CHIP SUBSCRIPTION CLOSE: handler=%p subscriptionId=0x%08lx peer=0x%016llx fabric=%u state=%s priming=%d active=%d eventMin=%llu options=%d\n",
+            static_cast<void *>(this), static_cast<unsigned long>(mSubscriptionId),
+            static_cast<unsigned long long>(GetInitiatorNodeId()), static_cast<unsigned int>(GetAccessingFabricIndex()),
+            GetStateStr(), IsPriming() ? 1 : 0, mFlags.Has(ReadHandlerFlags::ActiveSubscription) ? 1 : 0,
+            static_cast<unsigned long long>(mEventMin), static_cast<int>(options));
+    }
+
 #if CHIP_CONFIG_PERSIST_SUBSCRIPTIONS
     if (IsType(InteractionType::Subscribe) && options == CloseOptions::kDropPersistedSubscription)
     {
@@ -206,6 +326,13 @@ void ReadHandler::OnInitialRequest(System::PacketBufferHandle && aPayload)
 
     if (err != CHIP_NO_ERROR)
     {
+        if (IsType(InteractionType::Subscribe))
+        {
+            printf(
+                "CHIP SUBSCRIPTION INITIAL REQUEST FAILED: handler=%p peer=0x%016llx fabric=%u err=%" CHIP_ERROR_FORMAT "\n",
+                static_cast<void *>(this), static_cast<unsigned long long>(GetInitiatorNodeId()),
+                static_cast<unsigned int>(GetAccessingFabricIndex()), err.Format());
+        }
         Status status = Status::InvalidAction;
         if (err.IsIMStatus())
         {
@@ -247,6 +374,10 @@ CHIP_ERROR ReadHandler::OnStatusResponse(Messaging::ExchangeContext * apExchange
         {
             if (IsPriming())
             {
+                printf(
+                    "CHIP SUBSCRIPTION PRIMING ACK: handler=%p subscriptionId=0x%08lx eventMin=%llu sending SubscribeResponse\n",
+                    static_cast<void *>(this), static_cast<unsigned long>(mSubscriptionId),
+                    static_cast<unsigned long long>(mEventMin));
                 err = SendSubscribeResponse();
 
                 SetStateFlag(ReadHandlerFlags::ActiveSubscription);
@@ -278,6 +409,12 @@ CHIP_ERROR ReadHandler::OnStatusResponse(Messaging::ExchangeContext * apExchange
     }
 
 exit:
+    if (err != CHIP_NO_ERROR && IsType(InteractionType::Subscribe))
+    {
+        printf(
+            "CHIP SUBSCRIPTION STATUS RESPONSE FAILED: handler=%p subscriptionId=0x%08lx state=%s err=%" CHIP_ERROR_FORMAT "\n",
+            static_cast<void *>(this), static_cast<unsigned long>(mSubscriptionId), GetStateStr(), err.Format());
+    }
     return err;
 }
 
@@ -326,9 +463,21 @@ CHIP_ERROR ReadHandler::SendReportData(System::PacketBufferHandle && aPayload, b
 #endif // CHIP_CONFIG_UNSAFE_SUBSCRIPTION_EXCHANGE_MANAGER_USE
         VerifyOrReturnLogError(exchange != nullptr, CHIP_ERROR_INCORRECT_STATE);
         mExchangeCtx.Grab(exchange);
+        if (IsType(InteractionType::Subscribe))
+        {
+            const auto peer = mSessionHandle.Get().Value()->GetPeer();
+            printf(
+                "CHIP SUBSCRIPTION NEW EXCHANGE: handler=%p subscriptionId=0x%08lx exchangeId=%u fabric=%u peer=0x%016llx sessionId=%u\n",
+                static_cast<void *>(this), static_cast<unsigned long>(mSubscriptionId),
+                static_cast<unsigned int>(mExchangeCtx->GetExchangeId()), static_cast<unsigned int>(peer.GetFabricIndex()),
+                static_cast<unsigned long long>(peer.GetNodeId()),
+                static_cast<unsigned int>(mSessionHandle.Get().Value()->SessionIdForLogging()));
+        }
     }
 
     VerifyOrReturnLogError(mExchangeCtx, CHIP_ERROR_INCORRECT_STATE);
+
+    const size_t payloadBytes = aPayload->TotalLength();
 
     if (!IsReporting())
     {
@@ -337,8 +486,19 @@ CHIP_ERROR ReadHandler::SendReportData(System::PacketBufferHandle && aPayload, b
     }
     SetStateFlag(ReadHandlerFlags::ChunkedReport, aMoreChunks);
     bool responseExpected = IsType(InteractionType::Subscribe) || aMoreChunks;
-
     mExchangeCtx->UseSuggestedResponseTimeout(app::kExpectedIMProcessingTime);
+    if (IsType(InteractionType::Subscribe))
+    {
+        const auto peer = mExchangeCtx->GetSessionHandle()->GetPeer();
+        printf(
+            "CHIP SUBSCRIPTION SEND REPORT: handler=%p subscriptionId=0x%08lx exchangeId=%u fabric=%u peer=0x%016llx sessionId=%u payloadBytes=%lu moreChunks=%d responseExpected=%d priming=%d eventMin=%llu\n",
+            static_cast<void *>(this), static_cast<unsigned long>(mSubscriptionId),
+            static_cast<unsigned int>(mExchangeCtx->GetExchangeId()), static_cast<unsigned int>(peer.GetFabricIndex()),
+            static_cast<unsigned long long>(peer.GetNodeId()),
+            static_cast<unsigned int>(mExchangeCtx->GetSessionHandle()->SessionIdForLogging()),
+            static_cast<unsigned long>(payloadBytes), aMoreChunks ? 1 : 0, responseExpected ? 1 : 0, IsPriming() ? 1 : 0,
+            static_cast<unsigned long long>(mEventMin));
+    }
     CHIP_ERROR err = mExchangeCtx->SendMessage(Protocols::InteractionModel::MsgType::ReportData, std::move(aPayload),
                                                responseExpected ? Messaging::SendMessageFlags::kExpectResponse
                                                                 : Messaging::SendMessageFlags::kNone);
@@ -410,6 +570,12 @@ void ReadHandler::OnResponseTimeout(Messaging::ExchangeContext * apExchangeConte
 {
     ChipLogError(DataManagement, "Time out! failed to receive status response from Exchange: " ChipLogFormatExchange,
                  ChipLogValueExchange(apExchangeContext));
+    if (IsType(InteractionType::Subscribe))
+    {
+        printf("CHIP SUBSCRIPTION TIMEOUT: handler=%p subscriptionId=0x%08lx state=%s priming=%d eventMin=%llu\n",
+               static_cast<void *>(this), static_cast<unsigned long>(mSubscriptionId), GetStateStr(), IsPriming() ? 1 : 0,
+               static_cast<unsigned long long>(mEventMin));
+    }
 #if CHIP_CONFIG_ENABLE_ICD_SERVER && CHIP_CONFIG_ENABLE_ICD_CIP && CHIP_CONFIG_ENABLE_ICD_CHECK_IN_ON_REPORT_TIMEOUT
     switch (mState)
     {
@@ -648,6 +814,12 @@ void ReadHandler::MoveToState(const HandlerState aTargetState)
 
     mState = aTargetState;
     ChipLogDetail(DataManagement, "IM RH moving to [%s]", GetStateStr());
+    if (IsType(InteractionType::Subscribe))
+    {
+        printf("CHIP SUBSCRIPTION STATE: handler=%p subscriptionId=0x%08lx newState=%s priming=%d active=%d eventMin=%llu\n",
+               static_cast<void *>(this), static_cast<unsigned long>(mSubscriptionId), GetStateStr(), IsPriming() ? 1 : 0,
+               mFlags.Has(ReadHandlerFlags::ActiveSubscription) ? 1 : 0, static_cast<unsigned long long>(mEventMin));
+    }
 
     //
     // If we just unblocked sending reports, let's go ahead and schedule the reporting
@@ -691,6 +863,10 @@ bool ReadHandler::CheckEventClean(EventManagement & aEventManager)
 
 CHIP_ERROR ReadHandler::SendSubscribeResponse()
 {
+    printf("CHIP SUBSCRIPTION SEND RESPONSE: handler=%p subscriptionId=0x%08lx min=%u max=%u eventMin=%llu\n",
+           static_cast<void *>(this), static_cast<unsigned long>(mSubscriptionId),
+           static_cast<unsigned int>(mMinIntervalFloorSeconds), static_cast<unsigned int>(mMaxInterval),
+           static_cast<unsigned long long>(mEventMin));
     System::PacketBufferHandle packet = System::PacketBufferHandle::New(chip::app::kMaxSecureSduLengthBytes);
     VerifyOrReturnLogError(!packet.IsNull(), CHIP_ERROR_NO_MEMORY);
 
@@ -767,6 +943,8 @@ CHIP_ERROR ReadHandler::ProcessSubscribeRequest(System::PacketBufferHandle && aP
     ReturnErrorOnFailure(subscribeRequestParser.GetMinIntervalFloorSeconds(&mMinIntervalFloorSeconds));
     ReturnErrorOnFailure(subscribeRequestParser.GetMaxIntervalCeilingSeconds(&mSubscriberRequestedMaxInterval));
     mMaxInterval = mSubscriberRequestedMaxInterval;
+    const uint16_t requestedMinInterval = mMinIntervalFloorSeconds;
+    const uint16_t requestedMaxInterval = mSubscriberRequestedMaxInterval;
 
     VerifyOrReturnError(mMinIntervalFloorSeconds <= mMaxInterval, CHIP_ERROR_INVALID_ARGUMENT);
 
@@ -843,6 +1021,16 @@ CHIP_ERROR ReadHandler::ProcessSubscribeRequest(System::PacketBufferHandle && aP
     ReturnErrorOnFailure(Crypto::DRBG_get_bytes(reinterpret_cast<uint8_t *>(&mSubscriptionId), sizeof(mSubscriptionId)));
     ReturnErrorOnFailure(subscribeRequestParser.ExitContainer());
     MoveToState(HandlerState::CanStartReporting);
+
+    printf("\n=== CHIP SUBSCRIBE %s handler=%p peer=0x%016llx fabric=%u fabricFiltered=%d requestedMin=%u requestedMax=%u negotiatedMin=%u negotiatedMax=%u eventMin=%llu subscriptionId=0x%08lx ===\n",
+           __func__, static_cast<void *>(this), static_cast<unsigned long long>(GetInitiatorNodeId()),
+           static_cast<unsigned int>(GetAccessingFabricIndex()), isFabricFiltered ? 1 : 0,
+           static_cast<unsigned int>(requestedMinInterval), static_cast<unsigned int>(requestedMaxInterval),
+           static_cast<unsigned int>(mMinIntervalFloorSeconds), static_cast<unsigned int>(mMaxInterval),
+           static_cast<unsigned long long>(mEventMin), static_cast<unsigned long>(mSubscriptionId));
+    LogSubscribeAttributePaths(mpAttributePathList);
+    LogSubscribeEventPaths(mpEventPathList);
+    printf("=== CHIP SUBSCRIBE END ===\n\n");
 
     mExchangeCtx->WillSendMessage();
 

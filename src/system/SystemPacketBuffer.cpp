@@ -61,6 +61,48 @@
 namespace chip {
 namespace System {
 
+#if CHIP_SYSTEM_CONFIG_PROVIDE_STATISTICS && !(CHIP_SYSTEM_CONFIG_USE_LWIP && CHIP_SYSTEM_CONFIG_LWIP_PBUF_FROM_CUSTOM_POOL)
+namespace {
+
+void LogPacketBufferAllocationFailure(size_t allocSize, uint16_t reservedSize)
+{
+#if CHIP_SYSTEM_CONFIG_USE_LWIP && LWIP_STATS && MEMP_STATS
+    SYSTEM_STATS_UPDATE_LWIP_PBUF_COUNTS();
+#endif
+
+    const auto used      = Stats::GetResourcesInUse()[Stats::kSystemLayer_NumPacketBufs];
+    const auto highWater = Stats::GetHighWatermarks()[Stats::kSystemLayer_NumPacketBufs];
+
+#if CHIP_SYSTEM_CONFIG_USE_LWIP
+    ChipLogError(chipSystemLayer,
+                 "PacketBuffer allocation failed: request=%lu reserved=%u used=%d highwater=%d pool=%d",
+                 static_cast<unsigned long>(allocSize), static_cast<unsigned int>(reservedSize), static_cast<int>(used),
+                 static_cast<int>(highWater), static_cast<int>(PBUF_POOL_SIZE));
+#elif CHIP_SYSTEM_PACKETBUFFER_FROM_CHIP_POOL
+    ChipLogError(chipSystemLayer,
+                 "PacketBuffer allocation failed: request=%lu reserved=%u used=%d highwater=%d pool=%d",
+                 static_cast<unsigned long>(allocSize), static_cast<unsigned int>(reservedSize), static_cast<int>(used),
+                 static_cast<int>(highWater), static_cast<int>(CHIP_SYSTEM_CONFIG_PACKETBUFFER_POOL_SIZE));
+#else
+    ChipLogError(chipSystemLayer, "PacketBuffer allocation failed: request=%lu reserved=%u used=%d highwater=%d",
+                 static_cast<unsigned long>(allocSize), static_cast<unsigned int>(reservedSize), static_cast<int>(used),
+                 static_cast<int>(highWater));
+#endif
+}
+
+} // namespace
+#else
+namespace {
+
+void LogPacketBufferAllocationFailure(size_t allocSize, uint16_t reservedSize)
+{
+    ChipLogError(chipSystemLayer, "PacketBuffer allocation failed: request=%lu reserved=%u", static_cast<unsigned long>(allocSize),
+                 static_cast<unsigned int>(reservedSize));
+}
+
+} // namespace
+#endif
+
 #if CHIP_SYSTEM_PACKETBUFFER_FROM_CHIP_POOL
 //
 // Pool allocation for PacketBuffer objects.
@@ -148,6 +190,7 @@ void PacketBufferHandle::InternalRightSize()
     if (newBuffer == nullptr)
     {
         ChipLogError(chipSystemLayer, "PacketBuffer: pool EMPTY.");
+        LogPacketBufferAllocationFailure(usedSize, static_cast<uint16_t>(payload - start));
         return;
     }
 
@@ -629,6 +672,7 @@ PacketBufferHandle PacketBufferHandle::New(size_t aAvailableSize, uint16_t aRese
     if (lPacket == nullptr)
     {
         ChipLogError(chipSystemLayer, "PacketBuffer: pool EMPTY.");
+        LogPacketBufferAllocationFailure(lAllocSize, aReservedSize);
         return PacketBufferHandle();
     }
 

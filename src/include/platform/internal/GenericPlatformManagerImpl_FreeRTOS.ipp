@@ -25,6 +25,8 @@
 #ifndef GENERIC_PLATFORM_MANAGER_IMPL_FREERTOS_CPP
 #define GENERIC_PLATFORM_MANAGER_IMPL_FREERTOS_CPP
 
+#include <stdio.h>
+
 #include <platform/PlatformManager.h>
 #include <platform/internal/CHIPDeviceLayerInternal.h>
 #include <platform/internal/GenericPlatformManagerImpl_FreeRTOS.h>
@@ -38,6 +40,29 @@
 namespace chip {
 namespace DeviceLayer {
 namespace Internal {
+
+namespace {
+
+void PrintQueuePostResult(const char * queueName, int eventType, UBaseType_t usedBefore, UBaseType_t availableBefore, BaseType_t status,
+                          UBaseType_t usedAfter, UBaseType_t availableAfter, UBaseType_t maxEntries)
+{
+    if (availableBefore >= 3 && availableAfter >= 3)
+    {
+        return;
+    }
+
+    printf("%s enqueue: eventType=%d status=%ld used=%lu->%lu free=%lu->%lu max=%lu\n", queueName, eventType,
+           static_cast<long>(status), static_cast<unsigned long>(usedBefore), static_cast<unsigned long>(usedAfter),
+           static_cast<unsigned long>(availableBefore), static_cast<unsigned long>(availableAfter), static_cast<unsigned long>(maxEntries));
+}
+
+void PrintQueueFull(const char * queueName, int eventType, UBaseType_t usedBefore, UBaseType_t availableBefore, UBaseType_t maxEntries)
+{
+    printf("%s FULL: eventType=%d used=%lu free=%lu max=%lu\n", queueName, eventType, static_cast<unsigned long>(usedBefore),
+           static_cast<unsigned long>(availableBefore), static_cast<unsigned long>(maxEntries));
+}
+
+} // namespace
 
 template <class ImplClass>
 CHIP_ERROR GenericPlatformManagerImpl_FreeRTOS<ImplClass>::_InitChipStack(void)
@@ -172,11 +197,26 @@ CHIP_ERROR GenericPlatformManagerImpl_FreeRTOS<ImplClass>::_PostEvent(const Chip
 {
     if (mChipEventQueue == NULL)
     {
+        printf("CHIP event queue post: queue=null eventType=%d\n", static_cast<int>(event->Type));
         return CHIP_ERROR_INTERNAL;
     }
+
+    UBaseType_t usedBefore      = uxQueueMessagesWaiting(mChipEventQueue);
+    UBaseType_t availableBefore = uxQueueSpacesAvailable(mChipEventQueue);
     BaseType_t status = xQueueSend(mChipEventQueue, event, 1);
+    UBaseType_t usedAfter       = uxQueueMessagesWaiting(mChipEventQueue);
+    UBaseType_t availableAfter  = uxQueueSpacesAvailable(mChipEventQueue);
+
+    PrintQueuePostResult("CHIP event queue", static_cast<int>(event->Type), usedBefore, availableBefore, status, usedAfter,
+                         availableAfter, CHIP_DEVICE_CONFIG_MAX_EVENT_QUEUE_SIZE);
+
     if (status != pdTRUE)
     {
+        if (status == errQUEUE_FULL)
+        {
+            PrintQueueFull("CHIP event queue", static_cast<int>(event->Type), usedBefore, availableBefore,
+                           CHIP_DEVICE_CONFIG_MAX_EVENT_QUEUE_SIZE);
+        }
         ChipLogError(DeviceLayer, "Failed to post event to CHIP Platform event queue");
         return CHIP_ERROR(chip::ChipError::Range::kOS, status);
     }
@@ -295,9 +335,20 @@ CHIP_ERROR GenericPlatformManagerImpl_FreeRTOS<ImplClass>::_PostBackgroundEvent(
     {
         return CHIP_ERROR_INVALID_ARGUMENT;
     }
+    UBaseType_t usedBefore      = uxQueueMessagesWaiting(mBackgroundEventQueue);
+    UBaseType_t availableBefore = uxQueueSpacesAvailable(mBackgroundEventQueue);
     auto status = xQueueSendToBack(mBackgroundEventQueue, event, 1);
+    UBaseType_t usedAfter       = uxQueueMessagesWaiting(mBackgroundEventQueue);
+    UBaseType_t availableAfter  = uxQueueSpacesAvailable(mBackgroundEventQueue);
+    PrintQueuePostResult("CHIP background queue", static_cast<int>(event->Type), usedBefore, availableBefore, status, usedAfter,
+                         availableAfter, CHIP_DEVICE_CONFIG_BG_MAX_EVENT_QUEUE_SIZE);
     if (status != pdTRUE)
     {
+        if (status == errQUEUE_FULL)
+        {
+            PrintQueueFull("CHIP background queue", static_cast<int>(event->Type), usedBefore, availableBefore,
+                           CHIP_DEVICE_CONFIG_BG_MAX_EVENT_QUEUE_SIZE);
+        }
         ChipLogError(DeviceLayer, "Failed to post event to CHIP background event queue");
         return CHIP_ERROR_NO_MEMORY;
     }
@@ -362,7 +413,22 @@ CHIP_ERROR GenericPlatformManagerImpl_FreeRTOS<ImplClass>::_StopBackgroundEventL
     if (mShouldRunBackgroundEventLoop.compare_exchange_strong(oldShouldRunBackgroundEventLoop /* expected */, false /* desired */))
     {
         ChipDeviceEvent noop{ .Type = DeviceEventType::kNoOp };
-        xQueueSendToBack(mBackgroundEventQueue, &noop, 0);
+        UBaseType_t usedBefore      = uxQueueMessagesWaiting(mBackgroundEventQueue);
+        UBaseType_t availableBefore = uxQueueSpacesAvailable(mBackgroundEventQueue);
+        auto status                 = xQueueSendToBack(mBackgroundEventQueue, &noop, 0);
+        UBaseType_t usedAfter       = uxQueueMessagesWaiting(mBackgroundEventQueue);
+        UBaseType_t availableAfter  = uxQueueSpacesAvailable(mBackgroundEventQueue);
+        PrintQueuePostResult("CHIP background queue", static_cast<int>(noop.Type), usedBefore, availableBefore, status, usedAfter,
+                             availableAfter, CHIP_DEVICE_CONFIG_BG_MAX_EVENT_QUEUE_SIZE);
+        if (status != pdTRUE)
+        {
+            if (status == errQUEUE_FULL)
+            {
+                PrintQueueFull("CHIP background queue", static_cast<int>(noop.Type), usedBefore, availableBefore,
+                               CHIP_DEVICE_CONFIG_BG_MAX_EVENT_QUEUE_SIZE);
+            }
+            ChipLogError(DeviceLayer, "Failed to post stop event to CHIP background event queue");
+        }
     }
     return CHIP_NO_ERROR;
 #else
@@ -408,6 +474,8 @@ void GenericPlatformManagerImpl_FreeRTOS<ImplClass>::PostEventFromISR(const Chip
     {
         if (!xQueueSendFromISR(mChipEventQueue, event, &yieldRequired))
         {
+            ChipLogError(DeviceLayer, "CHIP Platform event queue full while posting from ISR, event type %d",
+                         static_cast<int>(event->Type));
             ChipLogError(DeviceLayer, "Failed to post event to CHIP Platform event queue");
         }
     }

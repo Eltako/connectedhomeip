@@ -35,6 +35,7 @@
 #include "openthread/tasklet.h"
 #include <lib/core/CHIPError.h>
 #include <memory>
+#include <stdio.h>
 
 #ifdef CONFIG_OPENTHREAD_BORDER_ROUTER
 #include <esp_openthread_border_router.h>
@@ -50,10 +51,32 @@ static constexpr UBaseType_t OTCLI_TRANSMIT_TASK_PRIORITY   = 5;
 CHIP_ERROR cli_transmit_task_post(std::unique_ptr<char[]> && cli_str)
 {
     char * cmd = cli_str.get();
-    if (!cli_transmit_task_queue || xQueueSend(cli_transmit_task_queue, &cmd, portMAX_DELAY) != pdTRUE)
+    if (!cli_transmit_task_queue)
     {
+        printf("OpenThread CLI queue enqueue: queue=null\n");
         return CHIP_ERROR_INTERNAL;
     }
+
+    UBaseType_t usedBefore      = uxQueueMessagesWaiting(cli_transmit_task_queue);
+    UBaseType_t availableBefore = uxQueueSpacesAvailable(cli_transmit_task_queue);
+    BaseType_t status           = xQueueSend(cli_transmit_task_queue, &cmd, portMAX_DELAY);
+    UBaseType_t usedAfter       = uxQueueMessagesWaiting(cli_transmit_task_queue);
+    UBaseType_t availableAfter  = uxQueueSpacesAvailable(cli_transmit_task_queue);
+
+    printf("OpenThread CLI queue enqueue: status=%ld used=%lu->%lu free=%lu->%lu\n", static_cast<long>(status),
+           static_cast<unsigned long>(usedBefore), static_cast<unsigned long>(usedAfter), static_cast<unsigned long>(availableBefore),
+           static_cast<unsigned long>(availableAfter));
+
+    if (status != pdTRUE)
+    {
+        if (status == errQUEUE_FULL)
+        {
+            printf("OpenThread CLI queue FULL: used=%lu free=%lu\n", static_cast<unsigned long>(usedBefore),
+                   static_cast<unsigned long>(availableBefore));
+        }
+        return CHIP_ERROR_INTERNAL;
+    }
+
     cli_str.release();
     return CHIP_NO_ERROR;
 }

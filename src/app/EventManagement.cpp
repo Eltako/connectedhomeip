@@ -159,6 +159,9 @@ CHIP_ERROR EventManagement::CopyToNextBuffer(CircularEventBuffer * apEventBuffer
 exit:
     if (err != CHIP_NO_ERROR)
     {
+        ChipLogError(EventLogging, "Copy event to next buffer failed: from priority %u to priority %u err=%" CHIP_ERROR_FORMAT,
+                     static_cast<unsigned>(apEventBuffer->GetPriority()),
+                     nextBuffer != nullptr ? static_cast<unsigned>(nextBuffer->GetPriority()) : 0, err.Format());
         *nextBuffer = backup;
     }
     return err;
@@ -178,7 +181,14 @@ CHIP_ERROR EventManagement::EnsureSpaceInCircularBuffer(size_t aRequiredSpace, P
     // larger.
     for (auto * currentBuffer = mpEventBuffer; currentBuffer; currentBuffer = currentBuffer->GetNextCircularEventBuffer())
     {
-        VerifyOrExit(requiredSpace <= currentBuffer->GetTotalDataLength(), err = CHIP_ERROR_BUFFER_TOO_SMALL);
+        if (requiredSpace > currentBuffer->GetTotalDataLength())
+        {
+            ChipLogError(EventLogging, "Event buffer too small: event priority %u required=%u bufferPriority=%u capacity=%u",
+                         static_cast<unsigned>(aPriority), static_cast<unsigned>(requiredSpace),
+                         static_cast<unsigned>(currentBuffer->GetPriority()),
+                         static_cast<unsigned>(currentBuffer->GetTotalDataLength()));
+            ExitNow(err = CHIP_ERROR_BUFFER_TOO_SMALL);
+        }
         if (currentBuffer->IsFinalDestinationForPriority(aPriority))
         {
             break;
@@ -211,6 +221,10 @@ CHIP_ERROR EventManagement::EnsureSpaceInCircularBuffer(size_t aRequiredSpace, P
                 VerifyOrExit(eventBuffer->GetNextCircularEventBuffer() != nullptr, err = CHIP_ERROR_INCORRECT_STATE);
                 if (ctx.mSpaceNeededForMovedEvent <= eventBuffer->GetNextCircularEventBuffer()->AvailableDataLength())
                 {
+                    ChipLogProgress(EventLogging, "Moving event from buffer priority %u to priority %u to free %u bytes",
+                                    static_cast<unsigned>(eventBuffer->GetPriority()),
+                                    static_cast<unsigned>(eventBuffer->GetNextCircularEventBuffer()->GetPriority()),
+                                    static_cast<unsigned>(requiredSpace));
                     // we can copy the event outright.  copy event and
                     // subsequently evict head s.t. evicting the head
                     // element always succeeds.
@@ -272,6 +286,8 @@ CHIP_ERROR EventManagement::CalculateEventSize(EventLoggingDelegate * apDelegate
     System::PacketBufferHandle buf = System::PacketBufferHandle::New(kMaxEventSizeReserve);
     if (buf.IsNull())
     {
+        ChipLogError(EventLogging, "CalculateEventSize failed: PacketBuffer allocation failed for priority %u reserve=%u",
+                     static_cast<unsigned>(apOptions->mPriority), static_cast<unsigned>(kMaxEventSizeReserve));
         return CHIP_ERROR_NO_MEMORY;
     }
     writer.Init(std::move(buf));
@@ -463,6 +479,11 @@ CHIP_ERROR EventManagement::LogEventPrivate(EventLoggingDelegate * apDelegate, c
 
     // Ensure we have space in the in-memory logging queues
     err = EnsureSpaceInCircularBuffer(requestSize, aEventOptions.mPriority);
+    if (err != CHIP_NO_ERROR)
+    {
+        ChipLogError(EventLogging, "EnsureSpaceInCircularBuffer failed: priority %u request=%u err=%" CHIP_ERROR_FORMAT,
+                     static_cast<unsigned>(aEventOptions.mPriority), static_cast<unsigned>(requestSize), err.Format());
+    }
     SuccessOrExit(err);
 
     err = ConstructEvent(&ctxt, apDelegate, &opts);
@@ -846,6 +867,11 @@ CHIP_ERROR EventManagement::EvictEvent(TLVCircularBuffer & apBuffer, void * apAp
 
     // event is not getting dropped. Note how much space it requires, and return.
     ctx->mSpaceNeededForMovedEvent = aReader.GetLengthRead();
+    ChipLogProgress(EventLogging,
+                    "Event needs move to next buffer: current priority %u event number 0x" ChipLogFormatX64
+                    " event priority %u size=%u",
+                    static_cast<unsigned>(eventBuffer->GetPriority()), ChipLogValueX64(context.mEventNumber),
+                    static_cast<unsigned>(imp), static_cast<unsigned>(ctx->mSpaceNeededForMovedEvent));
     return CHIP_END_OF_TLV;
 }
 

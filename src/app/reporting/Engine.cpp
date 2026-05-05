@@ -18,6 +18,7 @@
 
 #include <app/AppConfig.h>
 #include <app/ConcreteEventPath.h>
+#include <stdio.h>
 #include <app/InteractionModelEngine.h>
 #include <app/RequiredPrivilege.h>
 #include <app/data-model-provider/ActionReturnStatus.h>
@@ -213,7 +214,6 @@ CHIP_ERROR Engine::BuildSingleReportDataAttributeReportIBs(ReportDataMessage::Bu
                 // Operation error set, since this will affect early return or override on status encoding
                 // it will also be used for error reporting below.
                 err = status.GetUnderlyingError();
-
                 // If error is not an "out of writer space" error, rollback and encode status.
                 // Otherwise, if partial data allowed, save the encode state.
                 // Otherwise roll back. If we have already encoded some chunks, we are done; otherwise encode status.
@@ -417,10 +417,14 @@ CHIP_ERROR Engine::BuildSingleReportDataEventReports(ReportDataMessage::Builder 
     VerifyOrExit(eventManager.IsValid(), ChipLogError(DataManagement, "EventManagement has not yet initialized"));
 
     eventClean = apReadHandler->CheckEventClean(eventManager);
-
     // proceed only if there are new events.
     if (eventClean)
     {
+        if (apReadHandler->IsType(ReadHandler::InteractionType::Subscribe))
+        {
+            printf("CHIP SUBSCRIPTION EVENT REPORTS: handler=%p clean=1 eventMin=%llu\n", static_cast<void *>(apReadHandler),
+                   static_cast<unsigned long long>(eventMin));
+        }
         ExitNow(); // Read clean, move along
     }
 
@@ -480,7 +484,13 @@ CHIP_ERROR Engine::BuildSingleReportDataEventReports(ReportDataMessage::Builder 
         SuccessOrExit(err = eventReportIBs.EndOfEventReports());
     }
     ChipLogDetail(DataManagement, "Fetched %u events", static_cast<unsigned int>(eventCount));
-
+    if (apReadHandler->IsType(ReadHandler::InteractionType::Subscribe))
+    {
+        printf(
+            "CHIP SUBSCRIPTION EVENT REPORTS: handler=%p clean=0 eventCount=%lu hasEncodedStatus=%d hasMoreChunks=%d bufferUsed=%d eventMin=%llu err=%" CHIP_ERROR_FORMAT "\n",
+            static_cast<void *>(apReadHandler), static_cast<unsigned long>(eventCount), hasEncodedStatus ? 1 : 0,
+            hasMoreChunks ? 1 : 0, aBufferIsUsed ? 1 : 0, static_cast<unsigned long long>(eventMin), err.Format());
+    }
 exit:
     if (apHasEncodedData != nullptr)
     {
@@ -587,7 +597,6 @@ CHIP_ERROR Engine::BuildAndSendSingleReportData(ReadHandler * apReadHandler)
         SuccessOrExit(err);
 
         hasMoreChunks = hasMoreChunksForAttributes || hasMoreChunksForEvents;
-
         if (!hasEncodedAttributes && !hasEncodedEvents && hasMoreChunks)
         {
             ChipLogError(DataManagement,
@@ -633,6 +642,23 @@ CHIP_ERROR Engine::BuildAndSendSingleReportData(ReadHandler * apReadHandler)
                   mCurReadHandlerIdx, hasMoreChunks ? "more messages" : "no more messages");
 
 exit:
+    if (apReadHandler->IsType(ReadHandler::InteractionType::Subscribe))
+    {
+        if (err != CHIP_NO_ERROR)
+        {
+            printf(
+                "CHIP SUBSCRIPTION REPORT FAILED: handler=%p err=%" CHIP_ERROR_FORMAT " hasMoreChunks=%d needClose=%d reportsInFlight=%u\n",
+                static_cast<void *>(apReadHandler), err.Format(), hasMoreChunks ? 1 : 0, needCloseReadHandler ? 1 : 0,
+                static_cast<unsigned int>(mNumReportsInFlight));
+        }
+        else if (needCloseReadHandler)
+        {
+            printf("CHIP SUBSCRIPTION REPORT CLOSED: handler=%p hasMoreChunks=%d needClose=%d reportsInFlight=%u\n",
+                   static_cast<void *>(apReadHandler), hasMoreChunks ? 1 : 0, needCloseReadHandler ? 1 : 0,
+                   static_cast<unsigned int>(mNumReportsInFlight));
+        }
+    }
+
     if (err != CHIP_NO_ERROR || (apReadHandler->IsType(ReadHandler::InteractionType::Read) && !hasMoreChunks) ||
         needCloseReadHandler)
     {
@@ -881,7 +907,6 @@ CHIP_ERROR Engine::InsertPathIntoDirtySet(const AttributePathParams & aAttribute
 CHIP_ERROR Engine::SetDirty(const AttributePathParams & aAttributePath)
 {
     BumpDirtySetGeneration();
-
     bool intersectsInterestPath = false;
     mpImEngine->mReadHandlers.ForEachActiveObject([&aAttributePath, &intersectsInterestPath](ReadHandler * handler) {
         // We call AttributePathIsDirty for both read interactions and subscribe interactions, since we may send inconsistent

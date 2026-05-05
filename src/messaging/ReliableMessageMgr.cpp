@@ -212,12 +212,25 @@ CHIP_ERROR ReliableMessageMgr::AddToRetransTable(ReliableMessageContext * rc, Re
 {
     VerifyOrReturnError(!rc->IsWaitingForAck(), CHIP_ERROR_INCORRECT_STATE);
 
+    ExchangeContext * ec     = rc->GetExchangeContext();
+    SessionHandle session    = ec->GetSessionHandle();
+    size_t allocatedBefore   = mRetransTable.Allocated();
+    size_t maxEntries        = CHIP_CONFIG_RMP_RETRANS_TABLE_SIZE;
+
     *rEntry = mRetransTable.CreateObject(rc);
     if (*rEntry == nullptr)
     {
+        ChipLogError(ExchangeManager,
+                     "MRP retrans table FULL: exchange=" ChipLogFormatExchange " session=%u allocated=%u max=%u",
+                     ChipLogValueExchange(ec), session->SessionIdForLogging(), static_cast<unsigned int>(allocatedBefore),
+                     static_cast<unsigned int>(maxEntries));
         ChipLogError(ExchangeManager, "mRetransTable Already Full");
         return CHIP_ERROR_RETRANS_TABLE_FULL;
     }
+
+    ChipLogProgress(ExchangeManager, "MRP retrans table add: exchange=" ChipLogFormatExchange " session=%u allocated=%u->%u max=%u",
+                    ChipLogValueExchange(ec), session->SessionIdForLogging(), static_cast<unsigned int>(allocatedBefore),
+                    static_cast<unsigned int>(mRetransTable.Allocated()), static_cast<unsigned int>(maxEntries));
 
     return CHIP_NO_ERROR;
 }

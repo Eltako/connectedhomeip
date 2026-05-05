@@ -28,6 +28,7 @@
 #include <app/ReadClient.h>
 #include <app/StatusResponse.h>
 #include <assert.h>
+#include <stdio.h>
 #include <lib/core/TLVTypes.h>
 #include <lib/support/FibonacciUtils.h>
 #include <messaging/ReliableMessageMgr.h>
@@ -583,6 +584,14 @@ exit:
 void ReadClient::OnUnsolicitedReportData(Messaging::ExchangeContext * apExchangeContext, System::PacketBufferHandle && aPayload)
 {
     Status status = Status::Success;
+    const size_t payloadBytes = aPayload->TotalLength();
+    const auto peer           = apExchangeContext->GetSessionHandle()->GetPeer();
+    printf(
+        "CHIP TOOL RX UNSOLICITED REPORT: client=%p exchangeId=%u fabric=%u peer=0x%016llx sessionId=%u payloadBytes=%lu\n",
+        static_cast<void *>(this), static_cast<unsigned int>(apExchangeContext->GetExchangeId()),
+        static_cast<unsigned int>(peer.GetFabricIndex()), static_cast<unsigned long long>(peer.GetNodeId()),
+        static_cast<unsigned int>(apExchangeContext->GetSessionHandle()->SessionIdForLogging()),
+        static_cast<unsigned long>(payloadBytes));
     mExchange.Grab(apExchangeContext);
 
     //
@@ -608,6 +617,8 @@ void ReadClient::OnUnsolicitedReportData(Messaging::ExchangeContext * apExchange
         }
 
         StatusResponse::Send(status, mExchange.Get(), false /*aExpectResponse*/);
+        printf("CHIP TOOL RX UNSOLICITED REPORT FAILED: client=%p err=%" CHIP_ERROR_FORMAT " status=%d\n",
+               static_cast<void *>(this), err.Format(), static_cast<int>(status));
         Close(err);
     }
 }
@@ -621,6 +632,7 @@ CHIP_ERROR ReadClient::ProcessReportData(System::PacketBufferHandle && aPayload,
     EventReportIBs::Parser eventReportIBs;
     AttributeReportIBs::Parser attributeReportIBs;
     System::PacketBufferTLVReader reader;
+    const size_t payloadBytes = aPayload->TotalLength();
     reader.Init(std::move(aPayload));
     err = report.Init(reader);
     SuccessOrExit(err);
@@ -709,6 +721,11 @@ CHIP_ERROR ReadClient::ProcessReportData(System::PacketBufferHandle && aPayload,
     SuccessOrExit(err = report.ExitContainer());
 
 exit:
+    printf(
+        "CHIP TOOL PROCESS REPORT: client=%p type=%d payloadBytes=%lu suppressResponse=%d pendingMoreChunks=%d waitingFirstPriming=%d subscriptionId=0x%08lx err=%" CHIP_ERROR_FORMAT "\n",
+        static_cast<void *>(this), static_cast<int>(aReportType), static_cast<unsigned long>(payloadBytes),
+        suppressResponse ? 1 : 0, mPendingMoreChunks ? 1 : 0, mWaitingForFirstPrimingReport ? 1 : 0,
+        static_cast<unsigned long>(mSubscriptionId), err.Format());
     if (IsSubscriptionType())
     {
         if (IsAwaitingInitialReport())
@@ -730,7 +747,12 @@ exit:
     if (!suppressResponse && err == CHIP_NO_ERROR)
     {
         bool noResponseExpected = IsSubscriptionActive() && !mPendingMoreChunks;
-        err                     = StatusResponse::Send(Status::Success, mExchange.Get(), !noResponseExpected);
+        const auto exchangeId  = mExchange->GetExchangeId();
+        printf("CHIP TOOL SEND STATUS RESPONSE: client=%p exchangeId=%u noResponseExpected=%d\n", static_cast<void *>(this),
+               static_cast<unsigned int>(exchangeId), noResponseExpected ? 1 : 0);
+        err = StatusResponse::Send(Status::Success, mExchange.Get(), !noResponseExpected);
+        printf("CHIP TOOL SEND STATUS RESPONSE RESULT: client=%p exchangeId=%u err=%" CHIP_ERROR_FORMAT "\n",
+               static_cast<void *>(this), static_cast<unsigned int>(exchangeId), err.Format());
     }
 
     mWaitingForFirstPrimingReport = false;
@@ -926,6 +948,11 @@ CHIP_ERROR ReadClient::ProcessEventReportIBs(TLV::TLVReader & aEventReportIBsRea
             mReadPrepareParams.mEventNumber.SetValue(header.mEventNumber + 1);
 
             NoteReportingData();
+            printf(
+                "CHIP TOOL EVENT DATA: client=%p ep=%u cluster=0x%08lx event=0x%08lx eventNumber=%llu priority=%d\n",
+                static_cast<void *>(this), static_cast<unsigned int>(header.mPath.mEndpointId),
+                static_cast<unsigned long>(header.mPath.mClusterId), static_cast<unsigned long>(header.mPath.mEventId),
+                static_cast<unsigned long long>(header.mEventNumber), static_cast<int>(header.mPriorityLevel));
             mpCallback.OnEventData(header, &dataReader, nullptr);
         }
         else if (err == CHIP_END_OF_TLV)
@@ -940,6 +967,10 @@ CHIP_ERROR ReadClient::ProcessEventReportIBs(TLV::TLVReader & aEventReportIBsRea
             ReturnErrorOnFailure(statusIBParser.DecodeStatusIB(statusIB));
 
             NoteReportingData();
+            printf("CHIP TOOL EVENT STATUS: client=%p ep=%u cluster=0x%08lx event=0x%08lx status=%d\n",
+                   static_cast<void *>(this), static_cast<unsigned int>(header.mPath.mEndpointId),
+                   static_cast<unsigned long>(header.mPath.mClusterId), static_cast<unsigned long>(header.mPath.mEventId),
+                   static_cast<int>(statusIB.mStatus));
             mpCallback.OnEventData(header, nullptr, &statusIB);
         }
     }
