@@ -325,7 +325,7 @@ CHIP_ERROR emberAfSetDynamicEndpoint(uint16_t index, EndpointId id, const EmberA
 
 EndpointId emberAfClearDynamicEndpoint(uint16_t index)
 {
-    EndpointId ep = 0;
+    EndpointId ep = kInvalidEndpointId;
 
     index = static_cast<uint16_t>(index + FIXED_ENDPOINT_COUNT);
 
@@ -333,7 +333,9 @@ EndpointId emberAfClearDynamicEndpoint(uint16_t index)
         (emberAfEndpointIndexIsEnabled(index)))
     {
         ep = emAfEndpoints[index].endpoint;
-        emberAfEndpointEnableDisable(ep, false);
+        if (!emberAfEndpointEnableDisable(ep, false)) {
+            ChipLogError(DataManagement, "Failed to disable endpoint %d", ep);
+        }
         emAfEndpoints[index].endpoint = kInvalidEndpointId;
     }
 
