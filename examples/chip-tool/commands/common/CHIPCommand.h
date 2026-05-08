@@ -25,6 +25,7 @@
 #include "Command.h"
 
 #include "BDXDiagnosticLogsServerDelegate.h"
+#include "RemoteDataModelLogger.h"
 
 #include <TracingCommandLineArgument.h>
 #include <app/icd/client/CheckInHandler.h>
@@ -102,6 +103,8 @@ public:
         AddArgument(
             "commissioner-vendor-id", 0, UINT16_MAX, &mCommissionerVendorId,
             "The vendor id to use for chip-tool. If not provided, chip::VendorId::TestVendor1 (65521, 0xFFF1) will be used.");
+        AddArgument("json-output", &mJsonOutputPath,
+                    "Append machine-readable JSON Lines for received data-model results to the specified file.");
     }
 
     /////////// Command Interface /////////
@@ -263,6 +266,8 @@ private:
 
     void StartTracing();
     void StopTracing();
+    void StartJsonOutput();
+    void StopJsonOutput();
 
 #if CHIP_CONFIG_TRANSPORT_TRACE_ENABLED
     chip::Optional<char *> mTraceFile;
@@ -272,4 +277,5 @@ private:
 
     chip::CommandLineApp::TracingSetup mTracingSetup;
     chip::Optional<std::vector<std::string>> mTraceTo;
+    chip::Optional<char *> mJsonOutputPath;
 };

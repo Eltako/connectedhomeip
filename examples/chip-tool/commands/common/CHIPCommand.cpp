@@ -29,7 +29,9 @@
 #include <lib/support/TestGroupData.h>
 #include <platform/LockTracker.h>
 
+#include <mutex>
 #include <string>
+#include <stdio.h>
 
 #if CHIP_CONFIG_TRANSPORT_TRACE_ENABLED
 #include "TraceDecoder.h"
@@ -59,6 +61,65 @@ chip::Crypto::RawKeySessionKeystore CHIPCommand::sSessionKeystore;
 chip::app::CheckInHandler CHIPCommand::sCheckInHandler;
 
 namespace {
+
+class RemoteDataModelFileLogger : public RemoteDataModelLoggerDelegate
+{
+public:
+    CHIP_ERROR Open(const char * path)
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+
+        if (mPath == path && mFile != nullptr)
+        {
+            return CHIP_NO_ERROR;
+        }
+
+        CloseLocked();
+
+        mFile = fopen(path, "a");
+        VerifyOrReturnError(mFile != nullptr, CHIP_ERROR_OPEN_FAILED);
+
+        mPath = path;
+        return CHIP_NO_ERROR;
+    }
+
+    void Close()
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        CloseLocked();
+    }
+
+    bool IsOpen() const
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        return mFile != nullptr;
+    }
+
+    CHIP_ERROR LogJSON(const char * json) override
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        VerifyOrReturnError(mFile != nullptr, CHIP_NO_ERROR);
+
+        VerifyOrReturnError(fprintf(mFile, "%s\n", json) >= 0, CHIP_ERROR_WRITE_FAILED);
+        VerifyOrReturnError(fflush(mFile) == 0, CHIP_ERROR_WRITE_FAILED);
+        return CHIP_NO_ERROR;
+    }
+
+private:
+    void CloseLocked()
+    {
+        if (mFile != nullptr)
+        {
+            fclose(mFile);
+            mFile = nullptr;
+        }
+        mPath.clear();
+    }
+
+    mutable std::mutex mMutex;
+    FILE * mFile = nullptr;
+    std::string mPath;
+};
 
 CHIP_ERROR GetAttestationTrustStore(const char * paaTrustStorePath, const chip::Credentials::AttestationTrustStore ** trustStore)
 {
@@ -105,6 +166,8 @@ CHIP_ERROR GetAttestationRevocationDelegate(const char * revocationSetPath,
 }
 
 } // namespace
+
+RemoteDataModelFileLogger gRemoteDataModelFileLogger;
 
 CHIP_ERROR CHIPCommand::MaybeSetUpStack()
 {
@@ -266,9 +329,18 @@ CHIP_ERROR CHIPCommand::EnsureCommissionerForIdentity(std::string identity)
 
 CHIP_ERROR CHIPCommand::Run()
 {
-    ReturnErrorOnFailure(MaybeSetUpStack());
+    StartJsonOutput();
+    CHIP_ERROR err = MaybeSetUpStack();
+    if (err != CHIP_NO_ERROR)
+    {
+        if (!IsInteractive())
+        {
+            StopJsonOutput();
+        }
+        return err;
+    }
 
-    CHIP_ERROR err = StartWaiting(GetWaitDuration());
+    err = StartWaiting(GetWaitDuration());
 
     if (IsInteractive())
     {
@@ -284,6 +356,10 @@ CHIP_ERROR CHIPCommand::Run()
     }
 
     MaybeTearDownStack();
+    if (!IsInteractive())
+    {
+        StopJsonOutput();
+    }
 
     return err;
 }
@@ -329,6 +405,32 @@ void CHIPCommand::StopTracing()
 #if CHIP_CONFIG_TRANSPORT_TRACE_ENABLED
     chip::trace::DeInitTrace();
 #endif // CHIP_CONFIG_TRANSPORT_TRACE_ENABLED
+}
+
+void CHIPCommand::StartJsonOutput()
+{
+    if (!mJsonOutputPath.HasValue())
+    {
+        return;
+    }
+
+    CHIP_ERROR err = gRemoteDataModelFileLogger.Open(mJsonOutputPath.Value());
+    if (err != CHIP_NO_ERROR)
+    {
+        ChipLogError(chipTool, "Failed to open json output file '%s': %s", mJsonOutputPath.Value(), chip::ErrorStr(err));
+        return;
+    }
+
+    RemoteDataModelLogger::SetDelegate(&gRemoteDataModelFileLogger);
+}
+
+void CHIPCommand::StopJsonOutput()
+{
+    if (gRemoteDataModelFileLogger.IsOpen())
+    {
+        RemoteDataModelLogger::SetDelegate(nullptr);
+        gRemoteDataModelFileLogger.Close();
+    }
 }
 
 void CHIPCommand::SetIdentity(const char * identity)
