@@ -97,6 +97,17 @@ namespace app {
 namespace Clusters {
 namespace AccountLogin {
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kAccountLoginDeletageTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep =
@@ -262,9 +273,6 @@ exit:
 
 void MatterAccountLoginPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kAccountLoginDeletageTableSize);
-    }
+    setup();
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gAccountLoginAttrAccess);
 }

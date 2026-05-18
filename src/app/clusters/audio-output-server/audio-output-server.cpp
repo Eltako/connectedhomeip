@@ -76,6 +76,17 @@ namespace app {
 namespace Clusters {
 namespace AudioOutput {
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kAudioOutputDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, chip::app::Clusters::AudioOutput::Id,
@@ -245,9 +256,6 @@ exit:
 
 void MatterAudioOutputPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kAudioOutputDelegateTableSize);
-    }
+    setup();
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gAudioOutputAttrAccess);
 }

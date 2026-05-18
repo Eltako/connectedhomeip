@@ -101,6 +101,17 @@ namespace app {
 namespace Clusters {
 namespace ApplicationLauncher {
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kApplicationLauncherDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, ApplicationLauncher::Id,
@@ -496,9 +507,6 @@ exit:
 
 void MatterApplicationLauncherPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kApplicationLauncherDelegateTableSize);
-    }
+    setup();
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gApplicationLauncherAttrAccess);
 }

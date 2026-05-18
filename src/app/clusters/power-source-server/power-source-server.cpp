@@ -86,12 +86,28 @@ PowerSourceClusterInfo * sPowerSourceClusterInfo = nullptr;
 
 } // anonymous namespace
 
-void MatterPowerSourcePluginServerInitCallback()
+namespace chip {
+namespace app {
+namespace Clusters {
+namespace PowerSource {
+
+bool setup()
 {
     if (sPowerSourceClusterInfo == nullptr)
     {
         sPowerSourceClusterInfo = chip::util::memory::allocate_forever<PowerSourceClusterInfo>(kNumSupportedEndpoints);
     }
+    return sPowerSourceClusterInfo != nullptr;
+}
+
+} // namespace PowerSource
+} // namespace Clusters
+} // namespace app
+} // namespace chip
+
+void MatterPowerSourcePluginServerInitCallback()
+{
+    chip::app::Clusters::PowerSource::setup();
     AttributeAccessInterfaceRegistry::Instance().Register(&gAttrAccess);
 }
 

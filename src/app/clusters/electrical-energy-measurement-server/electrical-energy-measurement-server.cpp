@@ -43,12 +43,18 @@ constexpr size_t kElectricalEnergyMeasurementEndpointCount =
     MATTER_DM_ELECTRICAL_ENERGY_MEASUREMENT_CLUSTER_SERVER_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT;
 MeasurementData * gMeasurements = nullptr;
 
-CHIP_ERROR ElectricalEnergyMeasurementAttrAccess::Init()
+bool setup()
 {
     if (gMeasurements == nullptr)
     {
         gMeasurements = chip::util::memory::allocate_forever<MeasurementData>(kElectricalEnergyMeasurementEndpointCount);
     }
+    return gMeasurements != nullptr;
+}
+
+CHIP_ERROR ElectricalEnergyMeasurementAttrAccess::Init()
+{
+    VerifyOrReturnError(setup(), CHIP_ERROR_NO_MEMORY);
     VerifyOrReturnError(AttributeAccessInterfaceRegistry::Instance().Register(this), CHIP_ERROR_INCORRECT_STATE);
     return CHIP_NO_ERROR;
 }

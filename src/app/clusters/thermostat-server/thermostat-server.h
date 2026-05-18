@@ -235,6 +235,7 @@ private:
  * @param[in] endpoint The endpoint to set the default delegate on.
  * @param[in] delegate The default delegate.
  */
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 
 Delegate * GetDelegate(EndpointId endpoint);

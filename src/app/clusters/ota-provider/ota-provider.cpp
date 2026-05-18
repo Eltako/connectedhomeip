@@ -226,6 +226,17 @@ namespace app {
 namespace Clusters {
 namespace OTAProvider {
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<OTAProviderDelegate *>(kOtaProviderDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDelegate(EndpointId endpoint, OTAProviderDelegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, OtaSoftwareUpdateProvider::Id,
@@ -243,8 +254,5 @@ void SetDelegate(EndpointId endpoint, OTAProviderDelegate * delegate)
 
 void MatterOtaSoftwareUpdateProviderPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<OTAProviderDelegate *>(kOtaProviderDelegateTableSize);
-    }
+    chip::app::Clusters::OTAProvider::setup();
 }

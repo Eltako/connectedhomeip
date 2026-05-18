@@ -97,6 +97,17 @@ namespace app {
 namespace Clusters {
 namespace MediaPlayback {
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kMediaPlaybackDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep =
@@ -709,9 +720,6 @@ void MatterMediaPlaybackClusterServerAttributeChangedCallback(const chip::app::C
 
 void MatterMediaPlaybackPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kMediaPlaybackDelegateTableSize);
-    }
+    setup();
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gMediaPlaybackAttrAccess);
 }

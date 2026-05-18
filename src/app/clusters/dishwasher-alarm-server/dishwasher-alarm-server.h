@@ -83,6 +83,7 @@ private:
                          BitMask<AlarmMap> newState, BitMask<AlarmMap> mask);
 };
 
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 
 } // namespace DishwasherAlarm

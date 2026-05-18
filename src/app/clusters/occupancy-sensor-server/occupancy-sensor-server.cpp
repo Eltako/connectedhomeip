@@ -40,7 +40,7 @@ Structs::HoldTimeLimitsStruct::Type * sHoldTimeLimitsStructs = nullptr;
 uint16_t * sHoldTime                                         = nullptr;
 } // namespace
 
-CHIP_ERROR Instance::Init()
+bool setup()
 {
     if (sHoldTimeLimitsStructs == nullptr)
     {
@@ -51,6 +51,12 @@ CHIP_ERROR Instance::Init()
     {
         sHoldTime = chip::util::memory::allocate_forever<uint16_t>(kOccupancySensingEndpointCount);
     }
+    return sHoldTimeLimitsStructs != nullptr && sHoldTime != nullptr;
+}
+
+CHIP_ERROR Instance::Init()
+{
+    VerifyOrReturnError(setup(), CHIP_ERROR_NO_MEMORY);
     VerifyOrReturnError(chip::app::AttributeAccessInterfaceRegistry::Instance().Register(this), CHIP_ERROR_INCORRECT_STATE);
     return CHIP_NO_ERROR;
 }
@@ -280,4 +286,7 @@ HalOccupancySensorType __attribute__((weak)) halOccupancyGetSensorType(EndpointI
     return HAL_OCCUPANCY_SENSOR_TYPE_PIR;
 }
 
-void MatterOccupancySensingPluginServerInitCallback() {}
+void MatterOccupancySensingPluginServerInitCallback()
+{
+    chip::app::Clusters::OccupancySensing::setup();
+}

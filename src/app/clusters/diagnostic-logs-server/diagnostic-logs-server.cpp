@@ -87,6 +87,18 @@ BDXDiagnosticLogsProvider gBDXDiagnosticLogsProvider;
 
 DiagnosticLogsServer DiagnosticLogsServer::sInstance;
 
+bool setup()
+{
+    if (gDiagnosticLogsProviderDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDiagnosticLogsProviderDelegateTable = chip::util::memory::allocate_forever<DiagnosticLogsProviderDelegate *>(
+        kDiagnosticLogsDiagnosticLogsProviderDelegateTableSize);
+    return gDiagnosticLogsProviderDelegateTable != nullptr;
+}
+
 void DiagnosticLogsServer::SetDiagnosticLogsProviderDelegate(EndpointId endpoint, DiagnosticLogsProviderDelegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, Id, MATTER_DM_DIAGNOSTIC_LOGS_CLUSTER_SERVER_ENDPOINT_COUNT);
@@ -194,10 +206,6 @@ bool emberAfDiagnosticLogsClusterRetrieveLogsRequestCallback(chip::app::CommandH
 
 void MatterDiagnosticLogsPluginServerInitCallback()
 {
-    if (gDiagnosticLogsProviderDelegateTable == nullptr)
-    {
-        gDiagnosticLogsProviderDelegateTable = chip::util::memory::allocate_forever<DiagnosticLogsProviderDelegate *>(
-            kDiagnosticLogsDiagnosticLogsProviderDelegateTableSize);
-    }
+    chip::app::Clusters::DiagnosticLogs::setup();
 }
 #endif // #ifdef MATTER_DM_DIAGNOSTIC_LOGS_CLUSTER_SERVER_ENDPOINT_COUNT

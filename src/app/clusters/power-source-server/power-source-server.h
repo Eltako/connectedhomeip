@@ -28,6 +28,10 @@ namespace chip {
 namespace app {
 namespace Clusters {
 
+namespace PowerSource {
+bool setup();
+} // namespace PowerSource
+
 class PowerSourceServer
 {
 public:

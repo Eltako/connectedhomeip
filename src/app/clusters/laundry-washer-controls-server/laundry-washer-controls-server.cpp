@@ -66,6 +66,17 @@ LaundryWasherControlsServer LaundryWasherControlsServer::sInstance;
 /**********************************************************
  * LaundryWasherControlsServer public methods
  *********************************************************/
+bool chip::app::Clusters::LaundryWasherControls::setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLaundryWasherControlsDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void LaundryWasherControlsServer::SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, LaundryWasherControls::Id,
@@ -187,10 +198,7 @@ CHIP_ERROR LaundryWasherControlsServer::ReadSupportedRinses(const ConcreteReadAt
 
 void MatterLaundryWasherControlsPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLaundryWasherControlsDelegateTableSize);
-    }
+    setup();
     LaundryWasherControlsServer & laundryWasherControlsServer = LaundryWasherControlsServer::Instance();
     AttributeAccessInterfaceRegistry::Instance().Register(&laundryWasherControlsServer);
 }

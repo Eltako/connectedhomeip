@@ -126,6 +126,17 @@ static void writeRemainingTime(EndpointId endpoint, uint16_t remainingTimeMs, bo
 static bool shouldExecuteIfOff(EndpointId endpoint, CommandId commandId, chip::Optional<chip::BitMask<OptionsBitmap>> optionsMask,
                                chip::Optional<chip::BitMask<OptionsBitmap>> optionsOverride);
 
+bool LevelControlServer::setup()
+{
+    if (stateTable != nullptr)
+    {
+        return true;
+    }
+
+    stateTable = chip::util::memory::allocate_forever<EmberAfLevelControlState>(kLevelControlStateTableSize);
+    return stateTable != nullptr;
+}
+
 static Status SetCurrentLevelQuietReport(EndpointId endpoint, EmberAfLevelControlState * state,
                                          DataModel::Nullable<uint8_t> newValue, bool isEndOfTransition);
 
@@ -1465,10 +1476,7 @@ void emberAfOnOffClusterLevelControlEffectCallback(EndpointId endpoint, bool new
 
 void emberAfLevelControlClusterServerInitCallback(EndpointId endpoint)
 {
-    if (stateTable == nullptr)
-    {
-        stateTable = chip::util::memory::allocate_forever<EmberAfLevelControlState>(kLevelControlStateTableSize);
-    }
+    LevelControlServer::setup();
 
     EmberAfLevelControlState * state = getState(endpoint);
 
@@ -1598,4 +1606,7 @@ bool LevelControlHasFeature(EndpointId endpoint, Feature feature)
     return success ? ((featureMap & to_underlying(feature)) != 0) : false;
 }
 
-void MatterLevelControlPluginServerInitCallback() {}
+void MatterLevelControlPluginServerInitCallback()
+{
+    LevelControlServer::setup();
+}

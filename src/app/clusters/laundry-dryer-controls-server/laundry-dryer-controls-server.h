@@ -27,6 +27,8 @@ namespace app {
 namespace Clusters {
 namespace LaundryDryerControls {
 
+bool setup();
+
 /**
  * @brief LaundryDryerControls Server Plugin class
  */

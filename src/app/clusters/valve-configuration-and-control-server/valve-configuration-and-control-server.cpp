@@ -260,6 +260,20 @@ namespace app {
 namespace Clusters {
 namespace ValveConfigurationAndControl {
 
+bool setup()
+{
+    if (gRemainingDuration == nullptr)
+    {
+        gRemainingDuration =
+            chip::util::memory::allocate_forever<RemainingDurationTable>(kValveConfigurationAndControlDelegateTableSize);
+    }
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kValveConfigurationAndControlDelegateTableSize);
+    }
+    return gRemainingDuration != nullptr && gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, ValveConfigurationAndControl::Id,
@@ -516,14 +530,6 @@ bool emberAfValveConfigurationAndControlClusterCloseCallback(
 
 void MatterValveConfigurationAndControlPluginServerInitCallback()
 {
-    if (gRemainingDuration == nullptr)
-    {
-        gRemainingDuration =
-            chip::util::memory::allocate_forever<RemainingDurationTable>(kValveConfigurationAndControlDelegateTableSize);
-    }
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kValveConfigurationAndControlDelegateTableSize);
-    }
+    chip::app::Clusters::ValveConfigurationAndControl::setup();
     AttributeAccessInterfaceRegistry::Instance().Register(&gAttrAccess);
 }

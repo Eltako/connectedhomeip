@@ -79,6 +79,12 @@ namespace Thermostat {
 
 ThermostatAttrAccess gThermostatAttrAccess;
 
+bool setup()
+{
+    gThermostatAttrAccess.Init();
+    return gDelegateTable != nullptr;
+}
+
 void ThermostatAttrAccess::Init()
 {
     if (gDelegateTable == nullptr)
@@ -1096,7 +1102,7 @@ bool emberAfThermostatClusterSetpointRaiseLowerCallback(app::CommandHandler * co
 
 void MatterThermostatPluginServerInitCallback()
 {
-    gThermostatAttrAccess.Init();
+    chip::app::Clusters::Thermostat::setup();
     Server::GetInstance().GetFabricTable().AddFabricDelegate(&gThermostatAttrAccess);
     AttributeAccessInterfaceRegistry::Instance().Register(&gThermostatAttrAccess);
 }

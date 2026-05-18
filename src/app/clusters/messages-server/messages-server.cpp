@@ -72,6 +72,17 @@ namespace app {
 namespace Clusters {
 namespace Messages {
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kMessagesDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, Messages::Id, MATTER_DM_MESSAGES_CLUSTER_SERVER_ENDPOINT_COUNT);
@@ -294,9 +305,6 @@ exit:
 
 void MatterMessagesPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kMessagesDelegateTableSize);
-    }
+    setup();
     AttributeAccessInterfaceRegistry::Instance().Register(&gMessagesAttrAccess);
 }

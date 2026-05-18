@@ -54,6 +54,17 @@ Delegate * GetDelegate(EndpointId endpoint)
     return (ep >= kDishwasherAlarmDelegateTableSize ? nullptr : gDelegateTable[ep]);
 }
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kDishwasherAlarmDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, DishwasherAlarm::Id,
@@ -400,10 +411,5 @@ bool emberAfDishwasherAlarmClusterModifyEnabledAlarmsCallback(app::CommandHandle
 
 void MatterDishwasherAlarmPluginServerInitCallback()
 {
-    if (chip::app::Clusters::DishwasherAlarm::gDelegateTable == nullptr)
-    {
-        chip::app::Clusters::DishwasherAlarm::gDelegateTable =
-            chip::util::memory::allocate_forever<chip::app::Clusters::DishwasherAlarm::Delegate *>(
-                kDishwasherAlarmDelegateTableSize);
-    }
+    chip::app::Clusters::DishwasherAlarm::setup();
 }

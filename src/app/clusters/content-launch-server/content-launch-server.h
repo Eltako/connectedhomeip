@@ -25,6 +25,7 @@ namespace app {
 namespace Clusters {
 namespace ContentLauncher {
 
+bool setup();
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate);
 
 } // namespace ContentLauncher

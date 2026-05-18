@@ -66,6 +66,17 @@ Delegate * GetDelegate(EndpointId aEndpoint)
     return (ep >= kFanControlDelegateTableSize ? nullptr : gDelegateTable[ep]);
 }
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kFanControlDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId aEndpoint, Delegate * aDelegate)
 {
     uint16_t ep =
@@ -488,8 +499,5 @@ bool emberAfFanControlClusterStepCallback(app::CommandHandler * commandObj, cons
 
 void MatterFanControlPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kFanControlDelegateTableSize);
-    }
+    setup();
 }

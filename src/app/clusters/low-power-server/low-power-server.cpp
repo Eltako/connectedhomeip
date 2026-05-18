@@ -74,6 +74,17 @@ namespace app {
 namespace Clusters {
 namespace LowPower {
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLowPowerDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, chip::app::Clusters::LowPower::Id,
@@ -118,8 +129,5 @@ bool emberAfLowPowerClusterSleepCallback(app::CommandHandler * command, const ap
 
 void MatterLowPowerPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLowPowerDelegateTableSize);
-    }
+    setup();
 }

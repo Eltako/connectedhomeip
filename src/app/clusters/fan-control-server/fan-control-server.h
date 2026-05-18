@@ -26,6 +26,7 @@ namespace app {
 namespace Clusters {
 namespace FanControl {
 
+bool setup();
 void SetDefaultDelegate(EndpointId aEndpoint, Delegate * aDelegate);
 Delegate * GetDelegate(EndpointId aEndpoint);
 

@@ -234,6 +234,17 @@ namespace app {
 namespace Clusters {
 namespace BooleanStateConfiguration {
 
+bool setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kBooleanStateConfigurationDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, BooleanStateConfiguration::Id,
@@ -454,9 +465,6 @@ exit:
 
 void MatterBooleanStateConfigurationPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kBooleanStateConfigurationDelegateTableSize);
-    }
+    chip::app::Clusters::BooleanStateConfiguration::setup();
     AttributeAccessInterfaceRegistry::Instance().Register(&gAttrAccess);
 }

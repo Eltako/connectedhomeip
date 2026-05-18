@@ -67,6 +67,17 @@ LaundryDryerControlsServer LaundryDryerControlsServer::sInstance;
 /**********************************************************
  * LaundryDryerControlsServer public methods
  *********************************************************/
+bool chip::app::Clusters::LaundryDryerControls::setup()
+{
+    if (gDelegateTable != nullptr)
+    {
+        return true;
+    }
+
+    gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLaundryDryerControlsDelegateTableSize);
+    return gDelegateTable != nullptr;
+}
+
 void LaundryDryerControlsServer::SetDefaultDelegate(EndpointId endpoint, Delegate * delegate)
 {
     uint16_t ep = emberAfGetClusterServerEndpointIndex(endpoint, LaundryDryerControls::Id,
@@ -149,10 +160,7 @@ CHIP_ERROR LaundryDryerControlsServer::ReadSupportedDrynessLevels(const Concrete
 
 void MatterLaundryDryerControlsPluginServerInitCallback()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<Delegate *>(kLaundryDryerControlsDelegateTableSize);
-    }
+    setup();
     LaundryDryerControlsServer & laundryDryerControlsServer = LaundryDryerControlsServer::Instance();
     AttributeAccessInterfaceRegistry::Instance().Register(&laundryDryerControlsServer);
 }
