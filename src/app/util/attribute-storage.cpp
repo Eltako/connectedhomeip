@@ -299,6 +299,7 @@ CHIP_ERROR emberAfSetDynamicEndpoint(uint16_t index, EndpointId id, const EmberA
     // Start the endpoint off as disabled.
     emAfEndpoints[index].bitmask.Clear(EmberAfEndpointOptions::isEnabled);
     emAfEndpoints[index].parentEndpointId = parentEndpointId;
+    emAfEndpoints[index].tagList = chip::Span<const chip::app::Clusters::Descriptor::Structs::SemanticTagStruct::Type>();
 
     emberAfSetDynamicEndpointCount(MAX_ENDPOINT_COUNT - FIXED_ENDPOINT_COUNT);
 
@@ -330,7 +331,7 @@ EndpointId emberAfClearDynamicEndpoint(uint16_t index)
     {
         ep = emAfEndpoints[index].endpoint;
         emberAfEndpointEnableDisable(ep, false);
-        emAfEndpoints[index].endpoint = kInvalidEndpointId;
+        emAfEndpoints[index] = EmberAfDefinedEndpoint();
     }
 
     return ep;
