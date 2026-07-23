@@ -128,11 +128,9 @@ CHIP_ERROR ConnectivityManagerImpl::_SetWiFiAPMode(WiFiAPMode val)
     if (mWiFiAPMode != val)
     {
         ChipLogProgress(DeviceLayer, "WiFi AP mode change: %s -> %s", WiFiAPModeToStr(mWiFiAPMode), WiFiAPModeToStr(val));
+        mWiFiAPMode = val;
+        DeviceLayer::SystemLayer().ScheduleWork(DriveAPState, NULL);
     }
-
-    mWiFiAPMode = val;
-
-    DeviceLayer::SystemLayer().ScheduleWork(DriveAPState, NULL);
 
 exit:
     return err;
