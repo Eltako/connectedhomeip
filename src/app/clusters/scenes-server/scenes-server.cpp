@@ -180,14 +180,26 @@ CHIP_ERROR UpdateFabricSceneInfo(EndpointId endpoint, FabricIndex fabric, Option
 
 } // namespace
 
+bool setup()
+{
+    auto & sceneInfo = ScenesServer::Instance().mFabricSceneInfo;
+    if (sceneInfo.mSceneInfoStructs == nullptr)
+    {
+        sceneInfo.mSceneInfoStructs =
+            chip::util::memory::allocate_forever<Structs::SceneInfoStruct::Type[ScenesServer::kScenesServerMaxFabricCount]>(
+                ScenesServer::kScenesServerMaxEndpointCount);
+    }
+    if (sceneInfo.mSceneInfoStructsCount == nullptr)
+    {
+        sceneInfo.mSceneInfoStructsCount =
+            chip::util::memory::allocate_forever<uint8_t>(ScenesServer::kScenesServerMaxEndpointCount);
+    }
+    return sceneInfo.mSceneInfoStructs != nullptr && sceneInfo.mSceneInfoStructsCount != nullptr;
+}
+
 void ScenesServer::FabricSceneInfo::Init()
 {
-    if (mSceneInfoStructs == nullptr)
-    {
-        mSceneInfoStructs = chip::util::memory::allocate_forever<Structs::SceneInfoStruct::Type[kScenesServerMaxFabricCount]>(
-            kScenesServerMaxEndpointCount);
-        mSceneInfoStructsCount = chip::util::memory::allocate_forever<uint8_t>(kScenesServerMaxEndpointCount);
-    }
+    VerifyOrDie(mSceneInfoStructs != nullptr && mSceneInfoStructsCount != nullptr);
 }
 
 /// @brief Gets the SceneInfoStruct array associated to an endpoint

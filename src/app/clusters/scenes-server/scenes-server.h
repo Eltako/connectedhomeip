@@ -33,6 +33,8 @@ namespace app {
 namespace Clusters {
 namespace ScenesManagement {
 
+bool setup();
+
 class ScenesServer : public CommandHandlerInterface, public AttributeAccessInterface
 {
 public:
@@ -52,6 +54,8 @@ public:
         void ClearSceneInfoStruct(EndpointId endpoint, FabricIndex fabric);
 
     private:
+        friend bool setup();
+
         /// @brief Returns the index of the FabricSceneInfo associated to an endpoint
         /// @param[in] endpoint target endpoint
         /// @param[out] endpointIndex index of the corresponding FabricSceneInfo for an endpoint, corresponds to a row in the
@@ -104,6 +108,8 @@ public:
     void RemoveFabric(EndpointId aEndpointId, FabricIndex aFabricIndex);
 
 private:
+    friend bool setup();
+
     ScenesServer() : CommandHandlerInterface(Optional<EndpointId>(), Id), AttributeAccessInterface(Optional<EndpointId>(), Id) {}
     ~ScenesServer() { Shutdown(); }
 

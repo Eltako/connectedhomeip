@@ -428,5 +428,5 @@ exit:
 
 void MatterContentControlPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
 }

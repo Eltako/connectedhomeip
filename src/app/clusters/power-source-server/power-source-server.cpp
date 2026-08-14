@@ -107,7 +107,7 @@ bool setup()
 
 void MatterPowerSourcePluginServerInitCallback()
 {
-    chip::app::Clusters::PowerSource::setup();
+    VerifyOrDie(sPowerSourceClusterInfo != nullptr);
     AttributeAccessInterfaceRegistry::Instance().Register(&gAttrAccess);
 }
 

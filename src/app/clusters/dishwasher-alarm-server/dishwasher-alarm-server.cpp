@@ -411,5 +411,5 @@ bool emberAfDishwasherAlarmClusterModifyEnabledAlarmsCallback(app::CommandHandle
 
 void MatterDishwasherAlarmPluginServerInitCallback()
 {
-    chip::app::Clusters::DishwasherAlarm::setup();
+    VerifyOrDie(gDelegateTable != nullptr);
 }

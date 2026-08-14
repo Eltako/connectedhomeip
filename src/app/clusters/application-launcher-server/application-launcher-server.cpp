@@ -507,6 +507,6 @@ exit:
 
 void MatterApplicationLauncherPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gApplicationLauncherAttrAccess);
 }

@@ -64,6 +64,18 @@ static constexpr uint8_t MAX_CURRENT_LEVEL = 0xFE;
 
 static constexpr uint8_t REPORT_FAILED = 0xFF;
 
+namespace chip {
+namespace app {
+namespace Clusters {
+namespace ColorControl {
+
+bool setup();
+
+} // namespace ColorControl
+} // namespace Clusters
+} // namespace app
+} // namespace chip
+
 /**
  * @brief color-control-server class
  */
@@ -209,6 +221,8 @@ public:
                                                                           bool isNewTransition = false);
 
 private:
+    friend bool chip::app::Clusters::ColorControl::setup();
+
     /**********************************************************
      * Functions Definitions
      *********************************************************/

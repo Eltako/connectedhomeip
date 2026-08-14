@@ -81,20 +81,22 @@ ThermostatAttrAccess gThermostatAttrAccess;
 
 bool setup()
 {
-    gThermostatAttrAccess.Init();
-    return gDelegateTable != nullptr;
+    if (gDelegateTable == nullptr)
+    {
+        gDelegateTable =
+            chip::util::memory::allocate_forever<std::remove_pointer_t<decltype(gDelegateTable)>>(kThermostatEndpointCount);
+    }
+    if (gThermostatAttrAccess.mAtomicWriteSessions == nullptr)
+    {
+        gThermostatAttrAccess.mAtomicWriteSessions =
+            chip::util::memory::allocate_forever<ThermostatAttrAccess::AtomicWriteSession>(kThermostatEndpointCount);
+    }
+    return gDelegateTable != nullptr && gThermostatAttrAccess.mAtomicWriteSessions != nullptr;
 }
 
 void ThermostatAttrAccess::Init()
 {
-    if (gDelegateTable == nullptr)
-    {
-        gDelegateTable = chip::util::memory::allocate_forever<std::remove_pointer_t<decltype(gDelegateTable)>>(kThermostatEndpointCount);
-    }
-    if (mAtomicWriteSessions == nullptr)
-    {
-        mAtomicWriteSessions = chip::util::memory::allocate_forever<AtomicWriteSession>(kThermostatEndpointCount);
-    }
+    VerifyOrDie(gDelegateTable != nullptr && mAtomicWriteSessions != nullptr);
 }
 
 int16_t EnforceHeatingSetpointLimits(int16_t HeatingSetpoint, EndpointId endpoint)
@@ -1102,7 +1104,7 @@ bool emberAfThermostatClusterSetpointRaiseLowerCallback(app::CommandHandler * co
 
 void MatterThermostatPluginServerInitCallback()
 {
-    chip::app::Clusters::Thermostat::setup();
+    gThermostatAttrAccess.Init();
     Server::GetInstance().GetFabricTable().AddFabricDelegate(&gThermostatAttrAccess);
     AttributeAccessInterfaceRegistry::Instance().Register(&gThermostatAttrAccess);
 }

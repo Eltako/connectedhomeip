@@ -499,5 +499,5 @@ bool emberAfFanControlClusterStepCallback(app::CommandHandler * commandObj, cons
 
 void MatterFanControlPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
 }

@@ -129,5 +129,5 @@ bool emberAfLowPowerClusterSleepCallback(app::CommandHandler * command, const ap
 
 void MatterLowPowerPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
 }

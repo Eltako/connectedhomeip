@@ -996,5 +996,5 @@ MatterWindowCoveringClusterServerAttributeChangedCallback(const app::ConcreteAtt
  */
 void MatterWindowCoveringPluginServerInitCallback()
 {
-    chip::app::Clusters::WindowCovering::setup();
+    VerifyOrDie(gDelegateTable != nullptr);
 }

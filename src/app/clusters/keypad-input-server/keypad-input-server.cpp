@@ -208,6 +208,6 @@ exit:
 
 void MatterKeypadInputPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gKeypadInputAttrAccess);
 }

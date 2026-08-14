@@ -62,6 +62,18 @@ using chip::app::DataModel::NullNullable;
 using CredentialStruct  = chip::app::Clusters::DoorLock::Structs::CredentialStruct::Type;
 using LockOpCredentials = CredentialStruct;
 
+namespace chip {
+namespace app {
+namespace Clusters {
+namespace DoorLock {
+
+bool setup();
+
+} // namespace DoorLock
+} // namespace Clusters
+} // namespace app
+} // namespace chip
+
 /**
  * Handler for executing remote lock operations.
  *
@@ -294,6 +306,8 @@ public:
                                        Nullable<uint16_t> userId);
 
 private:
+    friend bool chip::app::Clusters::DoorLock::setup();
+
     chip::FabricIndex getFabricIndex(const chip::app::CommandHandler * commandObj);
     chip::NodeId getNodeId(const chip::app::CommandHandler * commandObj);
 

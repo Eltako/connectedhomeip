@@ -54,7 +54,7 @@ bool setup()
 
 CHIP_ERROR ElectricalEnergyMeasurementAttrAccess::Init()
 {
-    VerifyOrReturnError(setup(), CHIP_ERROR_NO_MEMORY);
+    VerifyOrReturnError(gMeasurements != nullptr, CHIP_ERROR_INCORRECT_STATE);
     VerifyOrReturnError(AttributeAccessInterfaceRegistry::Instance().Register(this), CHIP_ERROR_INCORRECT_STATE);
     return CHIP_NO_ERROR;
 }

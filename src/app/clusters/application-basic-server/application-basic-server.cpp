@@ -258,6 +258,6 @@ CHIP_ERROR ApplicationBasicAttrAccess::ReadAllowedVendorListAttribute(app::Attri
 
 void MatterApplicationBasicPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gApplicationBasicAttrAccess);
 }

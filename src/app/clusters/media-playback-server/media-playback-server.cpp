@@ -720,6 +720,6 @@ void MatterMediaPlaybackClusterServerAttributeChangedCallback(const chip::app::C
 
 void MatterMediaPlaybackPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gMediaPlaybackAttrAccess);
 }

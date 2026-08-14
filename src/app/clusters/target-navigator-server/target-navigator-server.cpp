@@ -273,6 +273,6 @@ void MatterTargetNavigatorClusterServerAttributeChangedCallback(const chip::app:
 
 void MatterTargetNavigatorPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gTargetNavigatorAttrAccess);
 }

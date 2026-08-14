@@ -530,6 +530,6 @@ bool emberAfValveConfigurationAndControlClusterCloseCallback(
 
 void MatterValveConfigurationAndControlPluginServerInitCallback()
 {
-    chip::app::Clusters::ValveConfigurationAndControl::setup();
+    VerifyOrDie(gRemainingDuration != nullptr && gDelegateTable != nullptr);
     AttributeAccessInterfaceRegistry::Instance().Register(&gAttrAccess);
 }

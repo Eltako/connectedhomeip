@@ -306,6 +306,6 @@ exit:
 
 void MatterMediaInputPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gMediaInputAttrAccess);
 }

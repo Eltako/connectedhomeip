@@ -23,12 +23,18 @@
 namespace chip {
 namespace app {
 namespace Clusters {
+namespace OtaSoftwareUpdateProvider {
+
+bool setup();
+
+} // namespace OtaSoftwareUpdateProvider
+
 namespace OTAProvider {
 
 bool setup();
 void SetDelegate(chip::EndpointId endpointId, OTAProviderDelegate * delegate);
 
-}
+} // namespace OTAProvider
 } // namespace Clusters
 } // namespace app
 } // namespace chip

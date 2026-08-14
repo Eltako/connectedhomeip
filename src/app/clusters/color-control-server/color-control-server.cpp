@@ -39,54 +39,117 @@ using namespace chip::app::Clusters;
 using namespace chip::app::Clusters::ColorControl;
 using chip::Protocols::InteractionModel::Status;
 
-void ColorControlServer::Init()
+bool chip::app::Clusters::ColorControl::setup()
 {
+    auto & server                                               = ColorControlServer::Instance();
+    using Color16uTransitionState                               = ColorControlServer::Color16uTransitionState;
+    using ColorHueTransitionState                               = ColorControlServer::ColorHueTransitionState;
+    constexpr size_t kColorControlClusterServerMaxEndpointCount = ColorControlServer::kColorControlClusterServerMaxEndpointCount;
+
 #ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_HSV
-    if (colorHueTransitionStates == nullptr)
+    if (server.colorHueTransitionStates == nullptr)
     {
-        colorHueTransitionStates = chip::util::memory::allocate_forever<ColorHueTransitionState>(
+        server.colorHueTransitionStates =
+            chip::util::memory::allocate_forever<ColorHueTransitionState>(kColorControlClusterServerMaxEndpointCount);
+    }
+    if (server.colorSatTransitionStates == nullptr)
+    {
+        server.colorSatTransitionStates =
+            chip::util::memory::allocate_forever<Color16uTransitionState>(kColorControlClusterServerMaxEndpointCount);
+    }
+    if (server.quietHue == nullptr)
+    {
+        server.quietHue = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint8_t>>(
             kColorControlClusterServerMaxEndpointCount);
-        colorSatTransitionStates = chip::util::memory::allocate_forever<Color16uTransitionState>(
+    }
+    if (server.quietSaturation == nullptr)
+    {
+        server.quietSaturation = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint8_t>>(
             kColorControlClusterServerMaxEndpointCount);
-        quietHue = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint8_t>>(
-            kColorControlClusterServerMaxEndpointCount);
-        quietSaturation = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint8_t>>(
-            kColorControlClusterServerMaxEndpointCount);
-        quietEnhancedHue = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
+    }
+    if (server.quietEnhancedHue == nullptr)
+    {
+        server.quietEnhancedHue = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
             kColorControlClusterServerMaxEndpointCount);
     }
 #endif
 
 #ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_XY
-    if (colorXtransitionStates == nullptr)
+    if (server.colorXtransitionStates == nullptr)
     {
-        colorXtransitionStates = chip::util::memory::allocate_forever<Color16uTransitionState>(
+        server.colorXtransitionStates =
+            chip::util::memory::allocate_forever<Color16uTransitionState>(kColorControlClusterServerMaxEndpointCount);
+    }
+    if (server.colorYtransitionStates == nullptr)
+    {
+        server.colorYtransitionStates =
+            chip::util::memory::allocate_forever<Color16uTransitionState>(kColorControlClusterServerMaxEndpointCount);
+    }
+    if (server.quietColorX == nullptr)
+    {
+        server.quietColorX = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
             kColorControlClusterServerMaxEndpointCount);
-        colorYtransitionStates = chip::util::memory::allocate_forever<Color16uTransitionState>(
-            kColorControlClusterServerMaxEndpointCount);
-        quietColorX = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
-            kColorControlClusterServerMaxEndpointCount);
-        quietColorY = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
+    }
+    if (server.quietColorY == nullptr)
+    {
+        server.quietColorY = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
             kColorControlClusterServerMaxEndpointCount);
     }
 #endif
 
 #ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_TEMP
-    if (colorTempTransitionStates == nullptr)
+    if (server.colorTempTransitionStates == nullptr)
     {
-        colorTempTransitionStates = chip::util::memory::allocate_forever<Color16uTransitionState>(
-            kColorControlClusterServerMaxEndpointCount);
-        quietTemperatureMireds = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
+        server.colorTempTransitionStates =
+            chip::util::memory::allocate_forever<Color16uTransitionState>(kColorControlClusterServerMaxEndpointCount);
+    }
+    if (server.quietTemperatureMireds == nullptr)
+    {
+        server.quietTemperatureMireds = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
             kColorControlClusterServerMaxEndpointCount);
     }
 #endif
 
-    if (eventControls == nullptr)
+    if (server.eventControls == nullptr)
     {
-        eventControls = chip::util::memory::allocate_forever<EmberEventControl>(kColorControlClusterServerMaxEndpointCount);
-        quietRemainingTime = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
+        server.eventControls = chip::util::memory::allocate_forever<EmberEventControl>(kColorControlClusterServerMaxEndpointCount);
+    }
+    if (server.quietRemainingTime == nullptr)
+    {
+        server.quietRemainingTime = chip::util::memory::allocate_forever<chip::app::QuieterReportingAttribute<uint16_t>>(
             kColorControlClusterServerMaxEndpointCount);
     }
+
+    bool initialized = server.eventControls != nullptr && server.quietRemainingTime != nullptr;
+#ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_HSV
+    initialized = initialized && server.colorHueTransitionStates != nullptr && server.colorSatTransitionStates != nullptr &&
+        server.quietHue != nullptr && server.quietSaturation != nullptr && server.quietEnhancedHue != nullptr;
+#endif
+#ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_XY
+    initialized = initialized && server.colorXtransitionStates != nullptr && server.colorYtransitionStates != nullptr &&
+        server.quietColorX != nullptr && server.quietColorY != nullptr;
+#endif
+#ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_TEMP
+    initialized = initialized && server.colorTempTransitionStates != nullptr && server.quietTemperatureMireds != nullptr;
+#endif
+    return initialized;
+}
+
+void ColorControlServer::Init()
+{
+    bool initialized = eventControls != nullptr && quietRemainingTime != nullptr;
+#ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_HSV
+    initialized = initialized && colorHueTransitionStates != nullptr && colorSatTransitionStates != nullptr &&
+        quietHue != nullptr && quietSaturation != nullptr && quietEnhancedHue != nullptr;
+#endif
+#ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_XY
+    initialized = initialized && colorXtransitionStates != nullptr && colorYtransitionStates != nullptr && quietColorX != nullptr &&
+        quietColorY != nullptr;
+#endif
+#ifdef MATTER_DM_PLUGIN_COLOR_CONTROL_SERVER_TEMP
+    initialized = initialized && colorTempTransitionStates != nullptr && quietTemperatureMireds != nullptr;
+#endif
+    VerifyOrDie(initialized);
 }
 
 #if defined(MATTER_DM_PLUGIN_SCENES_MANAGEMENT) && CHIP_CONFIG_SCENES_USE_DEFAULT_HANDLERS

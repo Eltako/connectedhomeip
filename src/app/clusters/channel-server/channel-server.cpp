@@ -420,6 +420,6 @@ exit:
 
 void MatterChannelPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gChannelAttrAccess);
 }

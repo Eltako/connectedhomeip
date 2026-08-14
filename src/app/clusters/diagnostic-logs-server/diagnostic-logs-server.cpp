@@ -206,6 +206,6 @@ bool emberAfDiagnosticLogsClusterRetrieveLogsRequestCallback(chip::app::CommandH
 
 void MatterDiagnosticLogsPluginServerInitCallback()
 {
-    chip::app::Clusters::DiagnosticLogs::setup();
+    VerifyOrDie(gDiagnosticLogsProviderDelegateTable != nullptr);
 }
 #endif // #ifdef MATTER_DM_DIAGNOSTIC_LOGS_CLUSTER_SERVER_ENDPOINT_COUNT

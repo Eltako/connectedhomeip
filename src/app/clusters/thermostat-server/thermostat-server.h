@@ -58,6 +58,8 @@ public:
     CHIP_ERROR Write(const ConcreteDataAttributePath & aPath, chip::app::AttributeValueDecoder & aDecoder) override;
 
 private:
+    friend bool setup();
+
     /**
      * @brief Set the Active Preset to a given preset handle, or null
      *

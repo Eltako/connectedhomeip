@@ -80,12 +80,20 @@ DoorLockServer & DoorLockServer::Instance()
     return instance;
 }
 
+bool chip::app::Clusters::DoorLock::setup()
+{
+    auto & server = DoorLockServer::Instance();
+    if (server.mEndpointCtx == nullptr)
+    {
+        server.mEndpointCtx = chip::util::memory::allocate_forever<EmberAfDoorLockEndpointContext>(
+            DoorLockServer::kDoorLockClusterServerMaxEndpointCount);
+    }
+    return server.mEndpointCtx != nullptr;
+}
+
 void DoorLockServer::InitEndpointContext()
 {
-    if (mEndpointCtx == nullptr)
-    {
-        mEndpointCtx = chip::util::memory::allocate_forever<EmberAfDoorLockEndpointContext>(kDoorLockClusterServerMaxEndpointCount);
-    }
+    VerifyOrDie(mEndpointCtx != nullptr);
 }
 
 /**

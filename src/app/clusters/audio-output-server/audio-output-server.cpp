@@ -256,6 +256,6 @@ exit:
 
 void MatterAudioOutputPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gAudioOutputAttrAccess);
 }

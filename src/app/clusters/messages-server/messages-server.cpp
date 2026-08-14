@@ -305,6 +305,6 @@ exit:
 
 void MatterMessagesPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     AttributeAccessInterfaceRegistry::Instance().Register(&gMessagesAttrAccess);
 }

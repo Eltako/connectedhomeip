@@ -56,7 +56,7 @@ bool setup()
 
 CHIP_ERROR Instance::Init()
 {
-    VerifyOrReturnError(setup(), CHIP_ERROR_NO_MEMORY);
+    VerifyOrReturnError(sHoldTimeLimitsStructs != nullptr && sHoldTime != nullptr, CHIP_ERROR_INCORRECT_STATE);
     VerifyOrReturnError(chip::app::AttributeAccessInterfaceRegistry::Instance().Register(this), CHIP_ERROR_INCORRECT_STATE);
     return CHIP_NO_ERROR;
 }
@@ -288,5 +288,5 @@ HalOccupancySensorType __attribute__((weak)) halOccupancyGetSensorType(EndpointI
 
 void MatterOccupancySensingPluginServerInitCallback()
 {
-    chip::app::Clusters::OccupancySensing::setup();
+    VerifyOrDie(sHoldTimeLimitsStructs != nullptr && sHoldTime != nullptr);
 }

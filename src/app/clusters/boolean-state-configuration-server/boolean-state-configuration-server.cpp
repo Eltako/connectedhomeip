@@ -465,6 +465,6 @@ exit:
 
 void MatterBooleanStateConfigurationPluginServerInitCallback()
 {
-    chip::app::Clusters::BooleanStateConfiguration::setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     AttributeAccessInterfaceRegistry::Instance().Register(&gAttrAccess);
 }

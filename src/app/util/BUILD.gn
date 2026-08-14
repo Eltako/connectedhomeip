@@ -36,6 +36,8 @@ source_set("types") {
     "attribute-metadata.cpp",
     "attribute-metadata.h",
     "basic-types.h",
+    "cluster-setup.cpp",
+    "cluster-setup.h",
     "ember-strings.cpp",
     "ember-strings.h",
     "endpoint-config-defines.h",

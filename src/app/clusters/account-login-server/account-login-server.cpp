@@ -273,6 +273,6 @@ exit:
 
 void MatterAccountLoginPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     app::AttributeAccessInterfaceRegistry::Instance().Register(&gAccountLoginAttrAccess);
 }

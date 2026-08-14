@@ -164,5 +164,5 @@ exit:
 
 void MatterContentAppObserverPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
 }

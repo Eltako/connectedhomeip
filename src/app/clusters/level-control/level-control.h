@@ -50,6 +50,18 @@ void emberAfPluginLevelControlClusterServerPostInitCallback(chip::EndpointId end
  */
 bool LevelControlHasFeature(chip::EndpointId endpoint, chip::app::Clusters::LevelControl::Feature feature);
 
+namespace chip {
+namespace app {
+namespace Clusters {
+namespace LevelControl {
+
+bool setup();
+
+} // namespace LevelControl
+} // namespace Clusters
+} // namespace app
+} // namespace chip
+
 namespace LevelControlServer {
 
 bool setup();

@@ -298,6 +298,6 @@ exit:
 
 void MatterContentLauncherPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     AttributeAccessInterfaceRegistry::Instance().Register(&gContentLauncherAttrAccess);
 }

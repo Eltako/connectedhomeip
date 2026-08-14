@@ -160,7 +160,7 @@ CHIP_ERROR LaundryDryerControlsServer::ReadSupportedDrynessLevels(const Concrete
 
 void MatterLaundryDryerControlsPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     LaundryDryerControlsServer & laundryDryerControlsServer = LaundryDryerControlsServer::Instance();
     AttributeAccessInterfaceRegistry::Instance().Register(&laundryDryerControlsServer);
 }

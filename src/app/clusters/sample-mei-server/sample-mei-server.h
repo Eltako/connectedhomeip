@@ -24,6 +24,8 @@ namespace app {
 namespace Clusters {
 namespace SampleMei {
 
+bool setup();
+
 // *****************************************************************************
 // SampleMeiContent has the stateful attributes of the cluster: its endpoint
 // and attributes

@@ -198,7 +198,7 @@ CHIP_ERROR LaundryWasherControlsServer::ReadSupportedRinses(const ConcreteReadAt
 
 void MatterLaundryWasherControlsPluginServerInitCallback()
 {
-    setup();
+    VerifyOrDie(gDelegateTable != nullptr);
     LaundryWasherControlsServer & laundryWasherControlsServer = LaundryWasherControlsServer::Instance();
     AttributeAccessInterfaceRegistry::Instance().Register(&laundryWasherControlsServer);
 }

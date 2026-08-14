@@ -27,14 +27,20 @@ using namespace chip::app::Clusters::SampleMei::Attributes;
 // *****************************************************************************
 // Init/Shutdown Callbacks
 
-void MatterSampleMeiPluginServerInitCallback()
+bool chip::app::Clusters::SampleMei::setup()
 {
-    ChipLogProgress(Zcl, "Sample MEI Init. Ep %d, Total Ep %u", MATTER_DM_SAMPLE_MEI_CLUSTER_SERVER_ENDPOINT_COUNT,
-                    static_cast<uint16_t>(kNumSupportedEndpoints));
     if (SampleMeiServer::Instance().content == nullptr)
     {
         SampleMeiServer::Instance().content = chip::util::memory::allocate_forever<SampleMeiContent>(kNumSupportedEndpoints);
     }
+    return SampleMeiServer::Instance().content != nullptr;
+}
+
+void MatterSampleMeiPluginServerInitCallback()
+{
+    ChipLogProgress(Zcl, "Sample MEI Init. Ep %d, Total Ep %u", MATTER_DM_SAMPLE_MEI_CLUSTER_SERVER_ENDPOINT_COUNT,
+                    static_cast<uint16_t>(kNumSupportedEndpoints));
+    VerifyOrDie(SampleMeiServer::Instance().content != nullptr);
     ReturnOnFailure(CommandHandlerInterfaceRegistry::Instance().RegisterCommandHandler(&SampleMeiServer::Instance()));
     VerifyOrReturn(AttributeAccessInterfaceRegistry::Instance().Register(&SampleMeiServer::Instance()), CHIP_ERROR_INCORRECT_STATE);
 }

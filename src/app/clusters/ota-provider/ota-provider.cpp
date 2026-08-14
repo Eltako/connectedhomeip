@@ -224,7 +224,7 @@ bool emberAfOtaSoftwareUpdateProviderClusterQueryImageCallback(app::CommandHandl
 namespace chip {
 namespace app {
 namespace Clusters {
-namespace OTAProvider {
+namespace OtaSoftwareUpdateProvider {
 
 bool setup()
 {
@@ -235,6 +235,15 @@ bool setup()
 
     gDelegateTable = chip::util::memory::allocate_forever<OTAProviderDelegate *>(kOtaProviderDelegateTableSize);
     return gDelegateTable != nullptr;
+}
+
+} // namespace OtaSoftwareUpdateProvider
+
+namespace OTAProvider {
+
+bool setup()
+{
+    return OtaSoftwareUpdateProvider::setup();
 }
 
 void SetDelegate(EndpointId endpoint, OTAProviderDelegate * delegate)
@@ -254,5 +263,5 @@ void SetDelegate(EndpointId endpoint, OTAProviderDelegate * delegate)
 
 void MatterOtaSoftwareUpdateProviderPluginServerInitCallback()
 {
-    chip::app::Clusters::OTAProvider::setup();
+    VerifyOrDie(gDelegateTable != nullptr);
 }
